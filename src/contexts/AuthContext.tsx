@@ -8,8 +8,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => void;
-  register: (email: string, password: string, name: string) => void;
+  login: (email: string, password: string) => boolean;
+  register: (email: string, password: string, name: string) => boolean;
   logout: () => void;
 }
 
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const login = (email: string, password: string) => {
+  const login = (email: string, password: string): boolean => {
     // In a real app, this would validate against a backend
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const user = storedUsers.find((u: any) => u.email === email && u.password === password);
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return false;
   };
 
-  const register = (email: string, password: string, name: string) => {
+  const register = (email: string, password: string, name: string): boolean => {
     // In a real app, this would create a user in the backend
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     
