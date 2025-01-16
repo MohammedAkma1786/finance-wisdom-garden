@@ -3,38 +3,63 @@ import { TransactionList } from "@/components/TransactionList";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowDownIcon, ArrowUpIcon, DollarSignIcon, PiggyBankIcon } from "lucide-react";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
-const mockTransactions = [
-  {
-    id: 1,
-    description: "Salary",
-    amount: 5000,
-    type: "income" as const,
-    category: "Income",
-    date: "2024-03-15",
-  },
-  {
-    id: 2,
-    description: "Rent",
-    amount: 1500,
-    type: "expense" as const,
-    category: "Housing",
-    date: "2024-03-14",
-  },
-  {
-    id: 3,
-    description: "Groceries",
-    amount: 200,
-    type: "expense" as const,
-    category: "Food",
-    date: "2024-03-13",
-  },
-];
+interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+}
 
 const Index = () => {
-  const totalIncome = 5000;
-  const totalExpenses = 1700;
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [type, setType] = useState<"income" | "expense">("expense");
+
+  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
+  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!description || !amount || !category) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newTransaction: Transaction = {
+      id: transactions.length + 1,
+      description,
+      amount: parseFloat(amount),
+      type,
+      category,
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    setTransactions([newTransaction, ...transactions]);
+    setDescription("");
+    setAmount("");
+    setCategory("");
+
+    toast({
+      title: "Success",
+      description: "Transaction added successfully",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
@@ -67,25 +92,105 @@ const Index = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="p-6">
-            <h2 className="mb-4 text-lg font-semibold">Recent Transactions</h2>
-            <TransactionList transactions={mockTransactions} />
+            <h2 className="mb-4 text-lg font-semibold">Add Transaction</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  Description
+                </label>
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter description"
+                />
+              </div>
+              <div>
+                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                  Amount
+                </label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                  Category
+                </label>
+                <Input
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Enter category"
+                />
+              </div>
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                  Type
+                </label>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant={type === "expense" ? "default" : "outline"}
+                    onClick={() => setType("expense")}
+                  >
+                    Expense
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={type === "income" ? "default" : "outline"}
+                    onClick={() => setType("income")}
+                  >
+                    Income
+                  </Button>
+                </div>
+              </div>
+              <Button type="submit" className="w-full">
+                Add Transaction
+              </Button>
+            </form>
           </Card>
           
           <Card className="p-6">
-            <h2 className="mb-4 text-lg font-semibold">Coming Soon</h2>
-            <div className="flex h-[400px] items-center justify-center rounded-md border-2 border-dashed">
-              <div className="text-center">
-                <DollarSignIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Spending analytics and insights coming soon!
-                </p>
-              </div>
-            </div>
+            <h2 className="mb-4 text-lg font-semibold">Recent Transactions</h2>
+            <TransactionList transactions={transactions} />
           </Card>
         </div>
       </div>
     </div>
   );
 };
+
+const mockTransactions = [
+  {
+    id: 1,
+    description: "Salary",
+    amount: 5000,
+    type: "income" as const,
+    category: "Income",
+    date: "2024-03-15",
+  },
+  {
+    id: 2,
+    description: "Rent",
+    amount: 1500,
+    type: "expense" as const,
+    category: "Housing",
+    date: "2024-03-14",
+  },
+  {
+    id: 3,
+    description: "Groceries",
+    amount: 200,
+    type: "expense" as const,
+    category: "Food",
+    date: "2024-03-13",
+  },
+];
 
 export default Index;
