@@ -7,6 +7,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Auth } from "@/components/Auth";
 
 interface Transaction {
   id: number;
@@ -18,12 +20,17 @@ interface Transaction {
 }
 
 const Index = () => {
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
+
+  if (!user) {
+    return <Auth />;
+  }
 
   const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
@@ -64,9 +71,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Financial Dashboard</h1>
-          <p className="text-muted-foreground">Track your finances and reach your goals.</p>
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Financial Dashboard</h1>
+            <p className="text-muted-foreground">Welcome, {user.name}</p>
+          </div>
+          <Button variant="outline" onClick={logout}>Logout</Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
