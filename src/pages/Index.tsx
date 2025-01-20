@@ -99,9 +99,14 @@ const Index = () => {
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
-          <Link to="/planner">
-            <Button variant="outline">Yearly Expense Planner</Button>
-          </Link>
+          <div className="space-x-4">
+            <Link to="/planner">
+              <Button variant="outline">Yearly Expense Planner</Button>
+            </Link>
+            <Link to="/subscriptions">
+              <Button variant="outline">Subscription Tracker</Button>
+            </Link>
+          </div>
         </div>
 
         <DashboardStats
