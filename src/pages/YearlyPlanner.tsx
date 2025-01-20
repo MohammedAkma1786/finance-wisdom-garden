@@ -29,6 +29,19 @@ const YearlyPlanner = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const handleMonthSelect = (monthIndex: string) => {
+    setSelectedMonth(monthIndex);
+    setShowCalendar(true);
+    setShowDetails(false);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setShowDetails(true);
+  };
 
   const handleSaveExpense = (date: Date, expense: ExpenseEntry) => {
     const dateKey = date.toISOString().split('T')[0];
@@ -66,7 +79,7 @@ const YearlyPlanner = () => {
                     key={month}
                     variant={selectedMonth === String(index) ? "default" : "outline"}
                     className="h-24 text-lg font-medium"
-                    onClick={() => setSelectedMonth(String(index))}
+                    onClick={() => handleMonthSelect(String(index))}
                   >
                     {month}
                   </Button>
@@ -76,38 +89,38 @@ const YearlyPlanner = () => {
           </div>
         </Card>
 
-        {selectedMonth !== "" && (
-          <>
-            <Card className="p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter planner title"
-                    className="bg-white border-gray-200 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter planner description"
-                    className="bg-white border-gray-200 focus:border-primary resize-none h-24"
-                  />
-                </div>
-              </div>
-            </Card>
+        {showCalendar && (
+          <PlannerGrid
+            selectedDate={selectedDate}
+            setSelectedDate={handleDateSelect}
+            expenses={expenses}
+            onSaveExpense={handleSaveExpense}
+          />
+        )}
 
-            <PlannerGrid
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              expenses={expenses}
-              onSaveExpense={handleSaveExpense}
-            />
-          </>
+        {showDetails && (
+          <Card className="p-6 space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Title</label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter planner title"
+                  className="bg-white border-gray-200 focus:border-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter planner description"
+                  className="bg-white border-gray-200 focus:border-primary resize-none h-24"
+                />
+              </div>
+            </div>
+          </Card>
         )}
       </div>
     </div>
