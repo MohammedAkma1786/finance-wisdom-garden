@@ -36,6 +36,8 @@ const Index = () => {
   const [category, setCategory] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingCard, setEditingCard] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   if (!user) {
     return <Auth />;
@@ -69,12 +71,19 @@ const Index = () => {
     }
   ]);
 
+  const handleCardEdit = (cardId: string, currentValue: number) => {
+    setEditingCard(cardId);
+    setEditValue(currentValue.toString());
+  };
+
   const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
     e.dataTransfer.setData('cardId', cardId);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleCardDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleCardDrop = (e: React.DragEvent, dropCardId: string) => {
@@ -194,6 +203,8 @@ const Index = () => {
               onDragStart={(e) => handleCardDragStart(e, card.id)}
               onDragOver={handleCardDragOver}
               onDrop={(e) => handleCardDrop(e, card.id)}
+              onEdit={() => handleCardEdit(card.id, card.value)}
+              isEditable={card.id !== 'savings'} // Only allow editing of income and expenses
             />
           ))}
         </div>
