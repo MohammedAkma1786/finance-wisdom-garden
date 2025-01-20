@@ -65,17 +65,25 @@ export function PlannerGrid({
           <Button onClick={() => setIsDialogOpen(true)}>Add Expense</Button>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-2 p-2 bg-muted font-medium text-sm">
+            <div>Description</div>
+            <div className="text-right">Amount</div>
+          </div>
           {dayExpenses.length === 0 ? (
-            <p className="text-muted-foreground">No expenses planned for this day</p>
+            <div className="text-muted-foreground p-4 text-center bg-background/50">
+              No expenses planned for this day
+            </div>
           ) : (
             dayExpenses.map((expense, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-4 rounded-lg border"
+                className="grid grid-cols-2 gap-2 p-2 bg-background hover:bg-muted/50 transition-colors rounded-sm"
               >
-                <span>{expense.description}</span>
-                <span className="font-medium">{formatCurrency(expense.amount)}</span>
+                <div>{expense.description}</div>
+                <div className="text-right font-medium">
+                  {formatCurrency(expense.amount)}
+                </div>
               </div>
             ))
           )}

@@ -6,6 +6,7 @@ import { PlannerGrid } from "@/components/PlannerGrid";
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface ExpenseEntry {
   amount: number;
@@ -20,7 +21,8 @@ const YearlyPlanner = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [expenses, setExpenses] = useState<DayExpenses>({});
-  const [yearlyGoal, setYearlyGoal] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
 
   const handleSaveExpense = (date: Date, expense: ExpenseEntry) => {
     const dateKey = date.toISOString().split('T')[0];
@@ -45,18 +47,29 @@ const YearlyPlanner = () => {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">Yearly Expense Planner</h1>
-          <div className="w-10" /> {/* Spacer for alignment */}
+          <div className="w-10" />
         </div>
 
-        <Card className="p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Yearly Financial Goal</label>
-            <Input
-              value={yearlyGoal}
-              onChange={(e) => setYearlyGoal(e.target.value)}
-              placeholder="Enter your financial goal for the year"
-              className="max-w-md"
-            />
+        <Card className="p-6 space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter planner title"
+                className="bg-white border-gray-200 focus:border-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter planner description"
+                className="bg-white border-gray-200 focus:border-primary resize-none h-24"
+              />
+            </div>
           </div>
         </Card>
 
