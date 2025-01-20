@@ -6,7 +6,6 @@ import { ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency } from "@/lib/utils";
 
 export interface ExpenseEntry {
   amount: number;
@@ -14,6 +13,10 @@ export interface ExpenseEntry {
   title: string;
   recurringMonths: number;
   createdAt: string;
+}
+
+export interface DayExpenses {
+  [date: string]: ExpenseEntry[];
 }
 
 const YearlyPlanner = () => {

@@ -42,7 +42,10 @@ const MonthPlanner = () => {
       const dateKey = date.toISOString().split('T')[0];
       const expense: ExpenseEntry = {
         amount: 0,
-        description: description
+        description: description,
+        title: title,
+        recurringMonths: 1,
+        createdAt: new Date().toISOString()
       };
 
       setExpenses(prev => ({
