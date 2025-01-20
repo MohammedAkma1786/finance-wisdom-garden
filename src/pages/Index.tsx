@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -8,6 +8,9 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
   id: number;
@@ -20,8 +23,36 @@ interface Transaction {
 
 const Index = () => {
   const { user, logout } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editingCard, setEditingCard] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Load transactions from Firestore
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user || !db) return;
+
+      try {
+        const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
+        const querySnapshot = await getDocs(q);
+        const loadedTransactions = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: parseInt(doc.id)
+        })) as Transaction[];
+        
+        setTransactions(loadedTransactions);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load transactions",
+          variant: "destructive",
+        });
+      }
+    };
+
+    loadTransactions();
+  }, [user]);
 
   // Calculate totals
   const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
@@ -56,36 +87,71 @@ const Index = () => {
     setEditingCard(cardId);
   };
 
-  const handleSaveEdit = (newValue: number) => {
+  const handleSaveEdit = async (newValue: number) => {
+    if (!user || !db) return;
+
     if (editingCard === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const newTransaction: Transaction = {
-          id: transactions.length + 1,
-          description: "Manual Income Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? "income" : "expense",
-          category: "Adjustment",
-          date: new Date().toISOString().split('T')[0],
-        };
-        setTransactions([newTransaction, ...transactions]);
-      }
-    } else if (editingCard === 'savings') {
-      const difference = newValue - savings;
-      if (difference !== 0) {
-        const newTransaction: Transaction = {
-          id: transactions.length + 1,
-          description: "Manual Savings Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? "income" : "expense",
-          category: "Savings Adjustment",
-          date: new Date().toISOString().split('T')[0],
-        };
-        setTransactions([newTransaction, ...transactions]);
+        try {
+          const newTransaction = {
+            description: "Manual Income Adjustment",
+            amount: Math.abs(difference),
+            type: difference > 0 ? "income" : "expense",
+            category: "Adjustment",
+            date: new Date().toISOString().split('T')[0],
+            userId: user.id
+          };
+
+          const docRef = await addDoc(collection(db, 'transactions'), newTransaction);
+          setTransactions(prev => [...prev, { ...newTransaction, id: parseInt(docRef.id) }]);
+          
+          toast({
+            title: "Success",
+            description: "Income adjusted successfully",
+          });
+        } catch (error) {
+          console.error('Error saving adjustment:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save adjustment",
+            variant: "destructive",
+          });
+        }
       }
     }
     
     setEditingCard(null);
+  };
+
+  const handleUpdateTransactions = async (newTransactions: Transaction[]) => {
+    if (!user || !db) return;
+
+    try {
+      // Update Firestore with the new transactions
+      for (const transaction of newTransactions) {
+        if (!transactions.find(t => t.id === transaction.id)) {
+          // New transaction
+          await addDoc(collection(db, 'transactions'), {
+            ...transaction,
+            userId: user.id
+          });
+        }
+      }
+
+      setTransactions(newTransactions);
+      toast({
+        title: "Success",
+        description: "Transactions updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transactions",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) {
@@ -126,7 +192,7 @@ const Index = () => {
 
         <TransactionManager 
           transactions={transactions}
-          setTransactions={setTransactions}
+          setTransactions={handleUpdateTransactions}
         />
       </div>
 
@@ -142,32 +208,5 @@ const Index = () => {
     </div>
   );
 };
-
-const mockTransactions = [
-  {
-    id: 1,
-    description: "Salary",
-    amount: 5000,
-    type: "income" as const,
-    category: "Income",
-    date: "2024-03-15",
-  },
-  {
-    id: 2,
-    description: "Rent",
-    amount: 1500,
-    type: "expense" as const,
-    category: "Housing",
-    date: "2024-03-14",
-  },
-  {
-    id: 3,
-    description: "Groceries",
-    amount: 200,
-    type: "expense" as const,
-    category: "Food",
-    date: "2024-03-13",
-  },
-];
 
 export default Index;
