@@ -2,16 +2,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionList } from "@/components/TransactionList";
-import { useToast } from "@/hooks/use-toast";
-
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-}
+import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TransactionManagerProps {
   transactions: Transaction[];
@@ -19,38 +11,20 @@ interface TransactionManagerProps {
 }
 
 export function TransactionManager({ transactions, setTransactions }: TransactionManagerProps) {
-  const { toast } = useToast();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const { user } = useAuth();
+  const { addTransaction } = useTransactions();
 
-  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
-    if (editingTransaction) {
-      const updatedTransactions = transactions.map((t) =>
-        t.id === editingTransaction.id
-          ? {
-              ...transaction,
-              id: editingTransaction.id,
-              date: editingTransaction.date
-            }
-          : t
-      );
-      setTransactions(updatedTransactions);
-      setEditingTransaction(null);
-      toast({
-        title: "Success",
-        description: "Transaction updated successfully",
-      });
-    } else {
-      const newTransaction: Transaction = {
-        ...transaction,
-        id: transactions.length + 1,
-        date: new Date().toISOString().split('T')[0],
-      };
-      setTransactions([newTransaction, ...transactions]);
-      toast({
-        title: "Success",
-        description: "Transaction added successfully",
-      });
-    }
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+
+    const newTransaction = {
+      ...transaction,
+      userId: user.id,
+    };
+
+    addTransaction(newTransaction);
+    setEditingTransaction(null);
   };
 
   const handleEdit = (transaction: Transaction) => {
@@ -59,10 +33,6 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
 
   const handleDelete = (id: number) => {
     setTransactions(transactions.filter((t) => t.id !== id));
-    toast({
-      title: "Success",
-      description: "Transaction deleted successfully",
-    });
   };
 
   const handleReorder = (startIndex: number, endIndex: number) => {
