@@ -32,6 +32,39 @@ const Index = () => {
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
 
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: transactions.length + 1,
+      date: new Date().toISOString().split('T')[0],
+    };
+    setTransactions([newTransaction, ...transactions]);
+    toast({
+      title: "Success",
+      description: "Transaction added successfully",
+    });
+    setEditingTransaction(null);
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  const handleDelete = (id: number) => {
+    setTransactions(transactions.filter((t) => t.id !== id));
+    toast({
+      title: "Success",
+      description: "Transaction deleted successfully",
+    });
+  };
+
+  const handleReorder = (startIndex: number, endIndex: number) => {
+    const reorderedTransactions = [...transactions];
+    const [removed] = reorderedTransactions.splice(startIndex, 1);
+    reorderedTransactions.splice(endIndex, 0, removed);
+    setTransactions(reorderedTransactions);
+  };
+
   const [dashboardCards, setDashboardCards] = useState([
     {
       id: "income",
