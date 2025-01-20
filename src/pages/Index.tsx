@@ -8,18 +8,10 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useToast } from "@/hooks/use-toast";
-
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-}
+import type { Transaction } from "@/types/transaction";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -30,16 +22,26 @@ const Index = () => {
   // Load transactions from Firestore
   useEffect(() => {
     const loadTransactions = async () => {
-      if (!user || !db) return;
+      if (!user?.id || !db) return;
 
       try {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
-        const loadedTransactions = querySnapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: parseInt(doc.id),
-          type: doc.data().type as "income" | "expense" // Ensure correct type casting
-        })) as Transaction[];
+        const loadedTransactions: Transaction[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          // Ensure type is correctly cast to "income" | "expense"
+          const type = data.type === "income" ? "income" : "expense";
+          
+          return {
+            id: parseInt(doc.id),
+            description: String(data.description || ""),
+            amount: Number(data.amount || 0),
+            type,
+            category: String(data.category || ""),
+            date: String(data.date || new Date().toISOString().split('T')[0]),
+            userId: String(data.userId || "")
+          };
+        });
         
         setTransactions(loadedTransactions);
       } catch (error) {
@@ -55,9 +57,11 @@ const Index = () => {
     loadTransactions();
   }, [user]);
 
-  // Calculate totals
-  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
-  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
+  // Calculate totals using serializable values
+  const totalIncome = transactions.reduce((sum, t) => 
+    t.type === "income" ? sum + Number(t.amount) : sum, 0);
+  const totalExpenses = transactions.reduce((sum, t) => 
+    t.type === "expense" ? sum + Number(t.amount) : sum, 0);
   const savings = totalIncome - totalExpenses;
 
   const [dashboardCards] = useState([
@@ -89,27 +93,24 @@ const Index = () => {
   };
 
   const handleSaveEdit = async (newValue: number) => {
-    if (!user || !db) return;
+    if (!user?.id || !db) return;
 
     if (editingCard === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
         try {
-          const newTransaction: Transaction = {
+          const newTransaction: Omit<Transaction, 'id'> = {
             description: "Manual Income Adjustment",
             amount: Math.abs(difference),
             type: difference > 0 ? "income" : "expense",
             category: "Adjustment",
             date: new Date().toISOString().split('T')[0],
-            id: transactions.length + 1
+            userId: user.id
           };
 
-          const docRef = await addDoc(collection(db, 'transactions'), {
-            ...newTransaction,
-            userId: user.id
-          });
+          const docRef = await addDoc(collection(db, 'transactions'), newTransaction);
           
-          setTransactions(prev => [...prev, newTransaction]);
+          setTransactions(prev => [...prev, { ...newTransaction, id: prev.length + 1 }]);
           
           toast({
             title: "Success",
@@ -130,20 +131,26 @@ const Index = () => {
   };
 
   const handleUpdateTransactions = async (newTransactions: Transaction[]) => {
-    if (!user || !db) return;
+    if (!user?.id || !db) return;
 
     try {
+      // Ensure all transactions are serializable
+      const serializedTransactions = newTransactions.map(t => ({
+        ...t,
+        amount: Number(t.amount),
+        type: t.type === "income" ? "income" : "expense" as const,
+        date: String(t.date),
+        userId: user.id
+      }));
+
       // Update Firestore with the new transactions
-      for (const transaction of newTransactions) {
+      for (const transaction of serializedTransactions) {
         if (!transactions.find(t => t.id === transaction.id)) {
-          await addDoc(collection(db, 'transactions'), {
-            ...transaction,
-            userId: user.id
-          });
+          await addDoc(collection(db, 'transactions'), transaction);
         }
       }
 
-      setTransactions(newTransactions);
+      setTransactions(serializedTransactions);
       toast({
         title: "Success",
         description: "Transactions updated successfully",
