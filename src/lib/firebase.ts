@@ -10,13 +10,38 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Validate that all required Firebase config values are present
+const validateFirebaseConfig = (config: Record<string, string | undefined>): boolean => {
+  const requiredFields = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
+  ];
+
+  return requiredFields.every(field => {
+    const value = config[field];
+    if (!value) {
+      console.error(`Missing Firebase config: ${field}`);
+      return false;
+    }
+    return true;
+  });
+};
+
 let app: FirebaseApp | null = null;
 
-try {
-  app = initializeApp(firebaseConfig);
-  console.log("Firebase initialized successfully");
-} catch (error) {
-  console.error("Error initializing Firebase:", error);
+if (validateFirebaseConfig(firebaseConfig)) {
+  try {
+    app = initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+  }
+} else {
+  console.error("Firebase configuration is incomplete. Please check your .env file.");
 }
 
 export const auth = app ? getAuth(app) : null;
