@@ -33,7 +33,7 @@ export function DraggableDashboardCard({
       onDrop={onDrop}
       className={cn("group cursor-move relative", className)}
     >
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute -left-3 top-1/2 -translate-y-1/2 invisible">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="transform transition-transform duration-200 group-hover:scale-[1.02] group-active:scale-[0.98]">
@@ -46,7 +46,7 @@ export function DraggableDashboardCard({
             className,
             "hover:bg-background/50 backdrop-blur-sm"
           )}
-          onEdit={isEditable ? onEdit : undefined}
+          onEdit={undefined}
         />
       </div>
     </div>

@@ -24,7 +24,7 @@ export function DashboardCard({ title, value, className, icon, onEdit }: Dashboa
             variant="ghost"
             size="icon"
             onClick={onEdit}
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-8 w-8 invisible"
           >
             <Pencil className="h-4 w-4" />
           </Button>
