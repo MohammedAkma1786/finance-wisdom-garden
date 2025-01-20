@@ -61,7 +61,11 @@ const Index = () => {
       // Update existing transaction
       const updatedTransactions = transactions.map((t) =>
         t.id === editingTransaction.id
-          ? { ...transaction, id: t.id, date: t.date }
+          ? { 
+              ...transaction, 
+              id: editingTransaction.id, 
+              date: editingTransaction.date 
+            }
           : t
       );
       setTransactions(updatedTransactions);
@@ -137,7 +141,6 @@ const Index = () => {
 
   const handleSaveEdit = (newValue: number) => {
     if (editingCard === 'income') {
-      // Add a new income transaction to reflect the manual adjustment
       const difference = newValue - totalIncome;
       if (difference !== 0) {
         const newTransaction: Transaction = {
@@ -151,7 +154,6 @@ const Index = () => {
         setTransactions([newTransaction, ...transactions]);
       }
     } else if (editingCard === 'savings') {
-      // Add a new transaction to adjust savings
       const difference = newValue - savings;
       if (difference !== 0) {
         const newTransaction: Transaction = {
