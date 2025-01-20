@@ -1,8 +1,8 @@
-import { DashboardCard } from "@/components/DashboardCard";
+import { DraggableDashboardCard } from "@/components/DraggableDashboardCard";
 import { TransactionList } from "@/components/TransactionList";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowDownIcon, ArrowUpIcon, DollarSignIcon, PiggyBankIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,14 @@ interface Transaction {
   type: "income" | "expense";
   category: string;
   date: string;
+}
+
+interface DashboardCardData {
+  id: string;
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  className: string;
 }
 
 const Index = () => {
@@ -36,6 +44,58 @@ const Index = () => {
   const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
+
+  const [dashboardCards, setDashboardCards] = useState<DashboardCardData[]>([
+    {
+      id: "income",
+      title: "Total Income",
+      value: totalIncome,
+      icon: <ArrowUpIcon className="h-4 w-4 text-secondary" />,
+      className: "border-l-4 border-l-secondary"
+    },
+    {
+      id: "expenses",
+      title: "Total Expenses",
+      value: totalExpenses,
+      icon: <ArrowDownIcon className="h-4 w-4 text-destructive" />,
+      className: "border-l-4 border-l-destructive"
+    },
+    {
+      id: "savings",
+      title: "Savings",
+      value: savings,
+      icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
+      className: "border-l-4 border-l-primary"
+    }
+  ]);
+
+  const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
+    e.dataTransfer.setData('cardId', cardId);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCardDrop = (e: React.DragEvent, dropCardId: string) => {
+    e.preventDefault();
+    const dragCardId = e.dataTransfer.getData('cardId');
+    
+    if (dragCardId !== dropCardId) {
+      const dragIndex = dashboardCards.findIndex(card => card.id === dragCardId);
+      const dropIndex = dashboardCards.findIndex(card => card.id === dropCardId);
+      
+      const newCards = [...dashboardCards];
+      const [removed] = newCards.splice(dragIndex, 1);
+      newCards.splice(dropIndex, 0, removed);
+      
+      setDashboardCards(newCards);
+      toast({
+        title: "Success",
+        description: "Dashboard card order updated",
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,24 +184,18 @@ const Index = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <DashboardCard
-            title="Total Income"
-            value={formatCurrency(totalIncome)}
-            icon={<ArrowUpIcon className="h-4 w-4 text-secondary" />}
-            className="border-l-4 border-l-secondary"
-          />
-          <DashboardCard
-            title="Total Expenses"
-            value={formatCurrency(totalExpenses)}
-            icon={<ArrowDownIcon className="h-4 w-4 text-destructive" />}
-            className="border-l-4 border-l-destructive"
-          />
-          <DashboardCard
-            title="Savings"
-            value={formatCurrency(savings)}
-            icon={<PiggyBankIcon className="h-4 w-4 text-primary" />}
-            className="border-l-4 border-l-primary"
-          />
+          {dashboardCards.map((card) => (
+            <DraggableDashboardCard
+              key={card.id}
+              title={card.title}
+              value={formatCurrency(card.value)}
+              icon={card.icon}
+              className={card.className}
+              onDragStart={(e) => handleCardDragStart(e, card.id)}
+              onDragOver={handleCardDragOver}
+              onDrop={(e) => handleCardDrop(e, card.id)}
+            />
+          ))}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
