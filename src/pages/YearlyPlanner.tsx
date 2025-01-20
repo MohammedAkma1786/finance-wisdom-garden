@@ -36,7 +36,7 @@ const YearlyPlanner = () => {
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">Yearly Expense Planner</h1>
+          <h1 className="text-2xl font-bold">Expense Planner</h1>
           <Link to="/current-plans">
             <Button variant="outline">View Current Plans</Button>
           </Link>
