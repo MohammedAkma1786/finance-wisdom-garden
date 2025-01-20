@@ -28,16 +28,7 @@ const MonthPlanner = () => {
   const [showDetails, setShowDetails] = useState(false);
 
   const handleDateSelect = (date: Date) => {
-    setSelectedDates(prev => {
-      const dateStr = date.toISOString().split('T')[0];
-      const exists = prev.some(d => d.toISOString().split('T')[0] === dateStr);
-      
-      if (exists) {
-        return prev.filter(d => d.toISOString().split('T')[0] !== dateStr);
-      } else {
-        return [...prev, date];
-      }
-    });
+    setSelectedDates([date]);
     setShowDetails(true);
   };
 
@@ -70,10 +61,7 @@ const MonthPlanner = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Get existing expenses from localStorage
     const existingExpenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-    
-    // Add new expense
     localStorage.setItem("expenses", JSON.stringify([...existingExpenses, expense]));
     
     toast({
@@ -81,7 +69,6 @@ const MonthPlanner = () => {
       description: "Your expense has been successfully recorded.",
     });
 
-    // Navigate to current plans page
     navigate("/current-plans");
   };
 
@@ -105,13 +92,14 @@ const MonthPlanner = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <Card className="p-4">
             <p className="text-sm text-muted-foreground mb-2">
-              Selected dates: {selectedDates.length}
+              Select start date
             </p>
             <PlannerGrid
               selectedDates={selectedDates}
               setSelectedDate={handleDateSelect}
               expenses={expenses}
               onSaveExpense={handleSaveExpense}
+              recurringMonths={recurringMonths}
             />
           </Card>
 
