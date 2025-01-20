@@ -22,12 +22,13 @@ export default function Index() {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
         
-        const loadedTransactions = querySnapshot.docs.map(doc => {
+        const loadedTransactions: Transaction[] = querySnapshot.docs.map(doc => {
           const data = doc.data();
+          // Ensure type is strictly "income" or "expense"
           const transactionType = data.type === "income" ? "income" : "expense";
           
           return {
-            id: Number(doc.id),
+            id: parseInt(doc.id),
             description: String(data.description || ""),
             amount: Number(data.amount || 0),
             type: transactionType,
@@ -55,15 +56,17 @@ export default function Index() {
     if (!user?.id || !db) return;
 
     try {
+      // Create a new array with properly typed and serializable data
       const processedTransactions = newTransactions.map(t => ({
         description: String(t.description),
         amount: Number(t.amount),
-        type: t.type === "income" ? "income" : "expense",
+        type: t.type === "income" ? "income" : "expense" as const,
         category: String(t.category),
         date: String(t.date),
         userId: String(user.id)
       }));
 
+      // Add each transaction to Firestore
       for (const transaction of processedTransactions) {
         await addDoc(collection(db, 'transactions'), transaction);
       }
