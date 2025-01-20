@@ -41,6 +41,7 @@ const Index = () => {
           : t
       );
       setTransactions(updatedTransactions);
+      setEditingTransaction(null);
       toast({
         title: "Success",
         description: "Transaction updated successfully",
@@ -58,7 +59,6 @@ const Index = () => {
         description: "Transaction added successfully",
       });
     }
-    setEditingTransaction(null);
   };
 
   const handleEdit = (transaction: Transaction) => {
@@ -78,80 +78,6 @@ const Index = () => {
     const [removed] = reorderedTransactions.splice(startIndex, 1);
     reorderedTransactions.splice(endIndex, 0, removed);
     setTransactions(reorderedTransactions);
-  };
-
-  const [dashboardCards, setDashboardCards] = useState([
-    {
-      id: "income",
-      title: "Total Income",
-      value: totalIncome,
-      icon: <ArrowUpIcon className="h-4 w-4 text-secondary" />,
-      className: "border-l-secondary"
-    },
-    {
-      id: "expenses",
-      title: "Total Expenses",
-      value: totalExpenses,
-      icon: <ArrowDownIcon className="h-4 w-4 text-destructive" />,
-      className: "border-l-destructive"
-    },
-    {
-      id: "savings",
-      title: "Savings",
-      value: savings,
-      icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
-      className: "border-l-primary"
-    }
-  ]);
-
-  const handleCardEdit = (cardId: string, currentValue: number) => {
-    setEditingCard(cardId);
-  };
-
-  const handleSaveEdit = (newValue: number) => {
-    if (editingCard === 'income') {
-      // Add a new income transaction to reflect the manual adjustment
-      const difference = newValue - totalIncome;
-      if (difference !== 0) {
-        const newTransaction: Transaction = {
-          id: transactions.length + 1,
-          description: "Manual Income Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? "income" : "expense",
-          category: "Adjustment",
-          date: new Date().toISOString().split('T')[0],
-        };
-        setTransactions([newTransaction, ...transactions]);
-      }
-    } else if (editingCard === 'savings') {
-      // Add a new transaction to adjust savings
-      const difference = newValue - savings;
-      if (difference !== 0) {
-        const newTransaction: Transaction = {
-          id: transactions.length + 1,
-          description: "Manual Savings Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? "income" : "expense",
-          category: "Savings Adjustment",
-          date: new Date().toISOString().split('T')[0],
-        };
-        setTransactions([newTransaction, ...transactions]);
-      }
-    }
-    
-    // Update dashboard cards
-    setDashboardCards(cards =>
-      cards.map(card => ({
-        ...card,
-        value: card.id === editingCard ? newValue : card.value
-      }))
-    );
-
-    setEditingCard(null);
-    toast({
-      title: "Success",
-      description: "Value updated successfully",
-    });
   };
 
   const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
