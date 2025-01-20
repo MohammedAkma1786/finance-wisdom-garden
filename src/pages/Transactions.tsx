@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 interface Transaction {
   id: number;
@@ -16,7 +17,6 @@ interface Transaction {
 }
 
 const Transactions = () => {
-  // Using the same mock data for now - in a real app this would come from a shared state or database
   const transactions = [
     {
       id: 1,
@@ -45,6 +45,7 @@ const Transactions = () => {
   ];
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleEdit = (transaction: Transaction) => {
     console.log("Edit transaction:", transaction);
@@ -58,6 +59,12 @@ const Transactions = () => {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const filteredTransactions = transactions.filter((transaction) =>
+    transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transaction.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transaction.date.includes(searchQuery)
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl">
@@ -69,10 +76,20 @@ const Transactions = () => {
           </Link>
           <h1 className="text-2xl font-bold">Transactions</h1>
         </div>
+
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <Card 
                 key={transaction.id} 
                 className={cn(
