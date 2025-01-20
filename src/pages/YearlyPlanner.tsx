@@ -29,23 +29,32 @@ const YearlyPlanner = () => {
   const [expenses, setExpenses] = useState<DayExpenses>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [showCalendar, setShowCalendar] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
   const handleMonthSelect = (monthIndex: string) => {
     setSelectedMonth(monthIndex);
-    // Navigate to the month detail page with the selected month
     navigate(`/planner/${monthIndex}`);
   };
 
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    setShowDetails(true);
-  };
+  const handleSaveExpense = () => {
+    if (!amount || isNaN(Number(amount))) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleSaveExpense = (date: Date, expense: ExpenseEntry) => {
-    const dateKey = date.toISOString().split('T')[0];
+    const dateKey = selectedDate.toISOString().split('T')[0];
+    const expense: ExpenseEntry = {
+      amount: Number(amount),
+      description: description
+    };
+
     setExpenses(prev => ({
       ...prev,
       [dateKey]: [...(prev[dateKey] || []), expense]
@@ -55,6 +64,9 @@ const YearlyPlanner = () => {
       title: "Expense saved",
       description: "Your expense has been successfully recorded.",
     });
+
+    // Navigate to current plans page
+    navigate("/current-plans");
   };
 
   return (
@@ -67,7 +79,9 @@ const YearlyPlanner = () => {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">Yearly Expense Planner</h1>
-          <div className="w-10" />
+          <Link to="/current-plans">
+            <Button variant="outline">View Current Plans</Button>
+          </Link>
         </div>
 
         <Card className="p-6">
@@ -85,6 +99,16 @@ const YearlyPlanner = () => {
                     {month}
                   </Button>
                 ))}
+              </div>
+              <div className="space-y-4 mt-6">
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="max-w-xs"
+                />
+                <Button onClick={handleSaveExpense}>Save Expense</Button>
               </div>
             </div>
           </div>
