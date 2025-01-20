@@ -154,6 +154,35 @@ const Index = () => {
     });
   };
 
+  const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
+    e.dataTransfer.setData('cardId', cardId);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCardDrop = (e: React.DragEvent, dropCardId: string) => {
+    e.preventDefault();
+    const draggedCardId = e.dataTransfer.getData('cardId');
+    
+    // Create a new array with the updated order
+    const newCards = [...dashboardCards];
+    const draggedCardIndex = newCards.findIndex(card => card.id === draggedCardId);
+    const dropCardIndex = newCards.findIndex(card => card.id === dropCardId);
+    
+    // Swap the positions
+    const [draggedCard] = newCards.splice(draggedCardIndex, 1);
+    newCards.splice(dropCardIndex, 0, draggedCard);
+    
+    setDashboardCards(newCards);
+    
+    toast({
+      title: "Success",
+      description: "Card order updated successfully",
+    });
+  };
+
   // Early return for unauthenticated users
   if (!user) {
     return <Auth />;
