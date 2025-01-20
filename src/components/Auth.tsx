@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useToast } from './ui/use-toast';
+import { FirebaseConfig } from './FirebaseConfig';
+import { isFirebaseConfigured } from '../lib/firebase';
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,6 +14,10 @@ export const Auth = () => {
   const [name, setName] = useState('');
   const { login, register } = useAuth();
   const { toast } = useToast();
+
+  if (!isFirebaseConfigured) {
+    return <FirebaseConfig />;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

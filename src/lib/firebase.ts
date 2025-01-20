@@ -1,17 +1,39 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-// Temporary placeholder configuration - replace with actual values
-const firebaseConfig = {
-  apiKey: "FIREBASE_API_KEY_PLACEHOLDER",
-  authDomain: "FIREBASE_AUTH_DOMAIN_PLACEHOLDER",
-  projectId: "FIREBASE_PROJECT_ID_PLACEHOLDER",
-  storageBucket: "FIREBASE_STORAGE_BUCKET_PLACEHOLDER",
-  messagingSenderId: "FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER",
-  appId: "FIREBASE_APP_ID_PLACEHOLDER"
+const FIREBASE_CONFIG_KEY = 'firebase_config';
+
+interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+}
+
+export const getStoredFirebaseConfig = (): FirebaseConfig | null => {
+  const stored = localStorage.getItem(FIREBASE_CONFIG_KEY);
+  return stored ? JSON.parse(stored) : null;
 };
 
-console.log("Initializing Firebase with config:", firebaseConfig);
+export const setFirebaseConfig = (config: FirebaseConfig) => {
+  localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+  window.location.reload(); // Reload to reinitialize Firebase with new config
+};
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app: FirebaseApp | null = null;
+let firebaseConfig = getStoredFirebaseConfig();
+
+if (firebaseConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+    localStorage.removeItem(FIREBASE_CONFIG_KEY);
+  }
+}
+
+export const auth = app ? getAuth(app) : null;
+export const isFirebaseConfigured = Boolean(app);
