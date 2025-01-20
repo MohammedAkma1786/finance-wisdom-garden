@@ -3,19 +3,15 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
-
-interface ExpenseEntry {
-  amount: number;
-  description: string;
-}
-
-interface DayExpenses {
-  [key: string]: ExpenseEntry[];
-}
+import type { ExpenseEntry } from "./YearlyPlanner";
 
 const CurrentPlans = () => {
-  // Get expenses from localStorage or state management
-  const expenses: DayExpenses = JSON.parse(localStorage.getItem("expenses") || "{}");
+  // Get expenses from localStorage
+  const expenses: ExpenseEntry[] = JSON.parse(localStorage.getItem("expenses") || "[]");
+
+  const calculateTotalExpense = (expense: ExpenseEntry) => {
+    return expense.amount * expense.recurringMonths;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
@@ -32,19 +28,31 @@ const CurrentPlans = () => {
 
         <Card className="p-6">
           <div className="grid gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(expenses).map(([date, expenseList]) => (
-                <Card key={date} className="p-4">
-                  <h3 className="font-semibold mb-2">{new Date(date).toLocaleDateString()}</h3>
-                  {expenseList.map((expense, index) => (
-                    <div key={index} className="border-t pt-2 mt-2 first:border-t-0 first:pt-0 first:mt-0">
-                      <p className="text-sm text-muted-foreground">{expense.description}</p>
-                      <p className="font-medium">{formatCurrency(expense.amount)}</p>
+            {expenses.length === 0 ? (
+              <p className="text-center text-muted-foreground">No expenses added yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {expenses.map((expense, index) => (
+                  <Card key={index} className="p-4">
+                    <h3 className="font-semibold text-lg mb-2">{expense.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{expense.description}</p>
+                    <div className="space-y-1">
+                      <p>
+                        <span className="font-medium">Monthly Amount:</span>{" "}
+                        {formatCurrency(expense.amount)}
+                      </p>
+                      <p>
+                        <span className="font-medium">Duration:</span>{" "}
+                        {expense.recurringMonths} month{expense.recurringMonths !== 1 ? "s" : ""}
+                      </p>
+                      <p className="text-lg font-semibold mt-2">
+                        Total: {formatCurrency(calculateTotalExpense(expense))}
+                      </p>
                     </div>
-                  ))}
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       </div>
