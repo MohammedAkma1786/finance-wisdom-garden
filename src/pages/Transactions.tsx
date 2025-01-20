@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatCurrency } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TransactionList } from "@/components/TransactionList";
+import { Link } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 
 interface Transaction {
   id: number;
@@ -14,8 +13,6 @@ interface Transaction {
 }
 
 const Transactions = () => {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
   // Using the same mock data for now - in a real app this would come from a shared state or database
   const transactions = [
     {
@@ -44,40 +41,35 @@ const Transactions = () => {
     },
   ];
 
-  const toggleTransaction = (id: number) => {
-    setExpandedId(expandedId === id ? null : id);
+  const handleEdit = (transaction: Transaction) => {
+    console.log("Edit transaction:", transaction);
+  };
+
+  const handleDelete = (id: number) => {
+    console.log("Delete transaction:", id);
+  };
+
+  const handleReorder = (startIndex: number, endIndex: number) => {
+    console.log("Reorder from", startIndex, "to", endIndex);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl">
-        <h1 className="text-2xl font-bold mb-6">Transactions</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {transactions.map((transaction) => (
-            <Card
-              key={transaction.id}
-              className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => toggleTransaction(transaction.id)}
-            >
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium">{transaction.description}</h3>
-                  <p className="text-sm text-muted-foreground">{transaction.date}</p>
-                </div>
-                
-                {expandedId === transaction.id && (
-                  <div className="pt-2 space-y-2 border-t">
-                    <p className="text-sm text-muted-foreground">Category: {transaction.category}</p>
-                    <p className={transaction.type === "income" ? "text-green-600" : "text-red-600"}>
-                      {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+        <div className="flex items-center gap-4 mb-6">
+          <Link to="/">
+            <Button variant="ghost" size="icon">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">Transactions</h1>
         </div>
+        <TransactionList
+          transactions={transactions}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onReorder={handleReorder}
+        />
       </div>
     </div>
   );
