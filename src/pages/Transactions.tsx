@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 interface Transaction {
   id: number;
@@ -44,12 +44,18 @@ const Transactions = () => {
     },
   ];
 
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   const handleEdit = (transaction: Transaction) => {
     console.log("Edit transaction:", transaction);
   };
 
   const handleDelete = (id: number) => {
     console.log("Delete transaction:", id);
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   return (
@@ -67,44 +73,77 @@ const Transactions = () => {
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {transactions.map((transaction) => (
-              <Card key={transaction.id} className="p-4 hover:shadow-lg transition-shadow">
+              <Card 
+                key={transaction.id} 
+                className={cn(
+                  "p-4 hover:shadow-lg transition-all duration-300 cursor-pointer",
+                  expandedId === transaction.id ? "shadow-lg" : ""
+                )}
+                onClick={() => toggleExpand(transaction.id)}
+              >
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium">{transaction.description}</h3>
-                      <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                      <p className="text-sm text-muted-foreground">{transaction.date}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(transaction)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(transaction.id)}
-                        className="h-8 w-8 text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{transaction.date}</span>
-                    <span
-                      className={cn(
-                        "font-medium",
-                        transaction.type === "income" ? "text-secondary" : "text-destructive"
-                      )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(transaction.id);
+                      }}
                     >
-                      {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
-                    </span>
+                      {expandedId === transaction.id ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
+
+                  {expandedId === transaction.id && (
+                    <div className="pt-2 space-y-2 animate-fade-in">
+                      <p className="text-sm text-muted-foreground">Category: {transaction.category}</p>
+                      <div className="flex justify-between items-center">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            transaction.type === "income" ? "text-secondary" : "text-destructive"
+                          )}
+                        >
+                          {transaction.type === "income" ? "+" : "-"}
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(transaction);
+                            }}
+                            className="h-8 w-8"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(transaction.id);
+                            }}
+                            className="h-8 w-8 text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))}
