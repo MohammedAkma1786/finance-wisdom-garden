@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useToast } from './ui/use-toast';
+import { useToast } from '../hooks/use-toast';
 import { FirebaseConfig } from './FirebaseConfig';
 import { isFirebaseConfigured } from '../lib/firebase';
 
@@ -19,11 +19,27 @@ export const Auth = () => {
     return <FirebaseConfig />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validatePassword = (password: string): boolean => {
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password should be at least 6 characters long",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!validatePassword(password)) {
+      return;
+    }
+
     if (isLogin) {
-      const success = login(email, password);
+      const success = await login(email, password);
       if (success) {
         toast({
           title: "Success",
@@ -45,7 +61,7 @@ export const Auth = () => {
         });
         return;
       }
-      const success = register(email, password, name);
+      const success = await register(email, password, name);
       if (success) {
         toast({
           title: "Success",
@@ -100,8 +116,9 @@ export const Auth = () => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder="Enter your password (min. 6 characters)"
             required
+            minLength={6}
           />
         </div>
         
