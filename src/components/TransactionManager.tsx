@@ -80,7 +80,7 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
       />
       
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">Recent Transactions</h2>
+        <h2 className="mb-4 text-lg font-semibold">Transactions</h2>
         <TransactionList 
           transactions={transactions}
           onEdit={handleEdit}
