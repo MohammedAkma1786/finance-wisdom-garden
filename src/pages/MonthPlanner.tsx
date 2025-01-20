@@ -41,7 +41,7 @@ const MonthPlanner = () => {
     selectedDates.forEach(date => {
       const dateKey = date.toISOString().split('T')[0];
       const expense: ExpenseEntry = {
-        amount: 0, // You can add an amount input if needed
+        amount: 0,
         description: description
       };
 
@@ -56,7 +56,6 @@ const MonthPlanner = () => {
       description: `Expenses saved for ${selectedDates.length} dates.`,
     });
 
-    // Reset form
     setTitle("");
     setDescription("");
     setSelectedDates([]);
