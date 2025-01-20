@@ -17,28 +17,50 @@ const months = [
 const MonthPlanner = () => {
   const { monthId } = useParams();
   const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [expenses, setExpenses] = useState<DayExpenses>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [showDetails, setShowDetails] = useState(false);
 
   const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
+    setSelectedDates(prev => {
+      const dateStr = date.toISOString().split('T')[0];
+      const exists = prev.some(d => d.toISOString().split('T')[0] === dateStr);
+      
+      if (exists) {
+        return prev.filter(d => d.toISOString().split('T')[0] !== dateStr);
+      } else {
+        return [...prev, date];
+      }
+    });
     setShowDetails(true);
   };
 
-  const handleSaveExpense = (date: Date, expense: ExpenseEntry) => {
-    const dateKey = date.toISOString().split('T')[0];
-    setExpenses(prev => ({
-      ...prev,
-      [dateKey]: [...(prev[dateKey] || []), expense]
-    }));
+  const handleSaveExpense = () => {
+    selectedDates.forEach(date => {
+      const dateKey = date.toISOString().split('T')[0];
+      const expense: ExpenseEntry = {
+        amount: 0, // You can add an amount input if needed
+        description: description
+      };
+
+      setExpenses(prev => ({
+        ...prev,
+        [dateKey]: [...(prev[dateKey] || []), expense]
+      }));
+    });
     
     toast({
-      title: "Expense saved",
-      description: "Your expense has been successfully recorded.",
+      title: "Expenses saved",
+      description: `Expenses saved for ${selectedDates.length} dates.`,
     });
+
+    // Reset form
+    setTitle("");
+    setDescription("");
+    setSelectedDates([]);
+    setShowDetails(false);
   };
 
   return (
@@ -56,37 +78,45 @@ const MonthPlanner = () => {
           <div className="w-10" />
         </div>
 
-        <PlannerGrid
-          selectedDate={selectedDate}
-          setSelectedDate={handleDateSelect}
-          expenses={expenses}
-          onSaveExpense={handleSaveExpense}
-        />
-
-        {showDetails && (
-          <Card className="p-6 space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter planner title"
-                  className="bg-white border-gray-200 focus:border-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter planner description"
-                  className="bg-white border-gray-200 focus:border-primary resize-none h-24"
-                />
-              </div>
-            </div>
+        <div className="space-y-4">
+          <Card className="p-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              Selected dates: {selectedDates.length}
+            </p>
+            <PlannerGrid
+              selectedDates={selectedDates}
+              setSelectedDate={handleDateSelect}
+              expenses={expenses}
+              onSaveExpense={handleSaveExpense}
+            />
           </Card>
-        )}
+
+          {showDetails && (
+            <Card className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Title</label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter planner title"
+                    className="bg-white border-gray-200 focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter planner description"
+                    className="bg-white border-gray-200 focus:border-primary resize-none h-24"
+                  />
+                </div>
+                <Button onClick={handleSaveExpense}>Save Expenses</Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
