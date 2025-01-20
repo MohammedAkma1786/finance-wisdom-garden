@@ -37,7 +37,8 @@ const Index = () => {
         const querySnapshot = await getDocs(q);
         const loadedTransactions = querySnapshot.docs.map(doc => ({
           ...doc.data(),
-          id: parseInt(doc.id)
+          id: parseInt(doc.id),
+          type: doc.data().type as "income" | "expense" // Ensure correct type casting
         })) as Transaction[];
         
         setTransactions(loadedTransactions);
@@ -94,17 +95,21 @@ const Index = () => {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
         try {
-          const newTransaction = {
+          const newTransaction: Transaction = {
             description: "Manual Income Adjustment",
             amount: Math.abs(difference),
             type: difference > 0 ? "income" : "expense",
             category: "Adjustment",
             date: new Date().toISOString().split('T')[0],
-            userId: user.id
+            id: transactions.length + 1
           };
 
-          const docRef = await addDoc(collection(db, 'transactions'), newTransaction);
-          setTransactions(prev => [...prev, { ...newTransaction, id: parseInt(docRef.id) }]);
+          const docRef = await addDoc(collection(db, 'transactions'), {
+            ...newTransaction,
+            userId: user.id
+          });
+          
+          setTransactions(prev => [...prev, newTransaction]);
           
           toast({
             title: "Success",
@@ -131,7 +136,6 @@ const Index = () => {
       // Update Firestore with the new transactions
       for (const transaction of newTransactions) {
         if (!transactions.find(t => t.id === transaction.id)) {
-          // New transaction
           await addDoc(collection(db, 'transactions'), {
             ...transaction,
             userId: user.id
