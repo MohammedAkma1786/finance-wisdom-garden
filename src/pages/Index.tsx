@@ -103,9 +103,6 @@ const Index = () => {
             <Link to="/planner">
               <Button variant="outline">Expense Planner</Button>
             </Link>
-            <Link to="/transactions">
-              <Button variant="outline">Transactions</Button>
-            </Link>
             <Link to="/subscriptions">
               <Button variant="outline">Subscription Tracker</Button>
             </Link>
@@ -119,6 +116,13 @@ const Index = () => {
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
         />
+
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Recent Transactions</h3>
+          <Link to="/transactions">
+            <Button variant="outline">View All Transactions</Button>
+          </Link>
+        </div>
 
         <TransactionManager 
           transactions={transactions}
