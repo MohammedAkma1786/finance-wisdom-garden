@@ -22,20 +22,17 @@ export default function Index() {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
         
-        const loadedTransactions: Transaction[] = querySnapshot.docs.map(doc => {
+        const loadedTransactions = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Ensure type is strictly "income" or "expense"
-          const transactionType = data.type === "income" ? "income" : "expense";
-          
           return {
             id: parseInt(doc.id),
-            description: String(data.description || ""),
-            amount: Number(data.amount || 0),
-            type: transactionType,
-            category: String(data.category || ""),
-            date: String(data.date || new Date().toISOString().split('T')[0]),
-            userId: String(data.userId || "")
-          };
+            description: data.description ? String(data.description) : "",
+            amount: data.amount ? Number(data.amount) : 0,
+            type: data.type === "income" ? "income" : "expense",
+            category: data.category ? String(data.category) : "",
+            date: data.date ? String(data.date) : new Date().toISOString().split('T')[0],
+            userId: data.userId ? String(data.userId) : user.id
+          } as Transaction;
         });
         
         setTransactions(loadedTransactions);
@@ -56,19 +53,17 @@ export default function Index() {
     if (!user?.id || !db) return;
 
     try {
-      // Create a new array with properly typed and serializable data
-      const processedTransactions = newTransactions.map(t => ({
-        description: String(t.description),
-        amount: Number(t.amount),
-        type: t.type === "income" ? "income" : "expense" as const,
-        category: String(t.category),
-        date: String(t.date),
-        userId: String(user.id)
-      }));
-
-      // Add each transaction to Firestore
-      for (const transaction of processedTransactions) {
-        await addDoc(collection(db, 'transactions'), transaction);
+      // Process each transaction before adding to Firestore
+      for (const transaction of newTransactions) {
+        const firestoreData = {
+          description: String(transaction.description),
+          amount: Number(transaction.amount),
+          type: transaction.type,
+          category: String(transaction.category),
+          date: String(transaction.date),
+          userId: String(user.id)
+        };
+        await addDoc(collection(db, 'transactions'), firestoreData);
       }
 
       setTransactions(newTransactions);
