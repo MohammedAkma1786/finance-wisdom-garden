@@ -1,8 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatCurrency, cn } from "@/lib/utils";
-import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
 
 interface Transaction {
   id: number;
@@ -50,7 +49,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onReorder }: T
             className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 cursor-move group"
           >
             <div className="flex items-center gap-4">
-              <DragHandleDots2Icon className="h-5 w-5 text-muted-foreground" />
+              <GripVertical className="h-5 w-5 text-muted-foreground" />
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">{transaction.description}</p>
                 <p className="text-sm text-muted-foreground">{transaction.category}</p>
