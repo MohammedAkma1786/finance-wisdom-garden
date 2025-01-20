@@ -54,24 +54,6 @@ const Index = () => {
     setEditingCard(cardId);
   };
 
-  // Add drag and drop handlers
-  const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
-    e.dataTransfer.setData("cardId", cardId);
-  };
-
-  const handleCardDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCardDrop = (e: React.DragEvent, dropCardId: string) => {
-    e.preventDefault();
-    const draggedCardId = e.dataTransfer.getData("cardId");
-    if (draggedCardId === dropCardId) return;
-    
-    // For now, we'll just console log the drag and drop action
-    console.log(`Dragged ${draggedCardId} onto ${dropCardId}`);
-  };
-
   const handleSaveEdit = (newValue: number) => {
     if (editingCard === 'income') {
       const difference = newValue - totalIncome;
@@ -120,9 +102,6 @@ const Index = () => {
           savings={savings}
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
-          onCardDragStart={handleCardDragStart}
-          onCardDragOver={handleCardDragOver}
-          onCardDrop={handleCardDrop}
         />
 
         <TransactionManager 
