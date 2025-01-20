@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -8,10 +8,6 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Transaction {
   id: number;
@@ -24,52 +20,15 @@ interface Transaction {
 
 const Index = () => {
   const { user, logout } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [editingCard, setEditingCard] = useState<string | null>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Query for fetching transactions with proper serialization
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions', user?.id],
-    queryFn: async () => {
-      if (!user?.id || !db) return [];
-      
-      const q = query(
-        collection(db, 'transactions'), 
-        where('userId', '==', user.id)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Ensure all data is serializable
-        return {
-          id: Number(doc.id),
-          description: String(data.description),
-          amount: Number(data.amount),
-          type: data.type === "income" ? "income" : "expense",
-          category: String(data.category),
-          date: String(data.date),
-        } as Transaction;
-      });
-    },
-    enabled: !!user && !!db
-  });
-
-  // Calculate totals using primitive values
-  const totalIncome = transactions.reduce(
-    (sum, t) => t.type === "income" ? sum + Number(t.amount) : sum, 
-    0
-  );
-  
-  const totalExpenses = transactions.reduce(
-    (sum, t) => t.type === "expense" ? sum + Number(t.amount) : sum, 
-    0
-  );
-  
+  // Calculate totals
+  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
+  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
 
-  const dashboardCards = [
+  const [dashboardCards] = useState([
     {
       id: "income",
       title: "Total Income",
@@ -91,61 +50,41 @@ const Index = () => {
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
       className: "border-l-primary"
     }
-  ];
+  ]);
 
-  // Mutation for adding transactions with serializable data
-  const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const serializedTransaction = {
-        description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
-        type: newTransaction.type,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(newTransaction.userId)
-      };
-      
-      const docRef = await addDoc(collection(db, 'transactions'), serializedTransaction);
-      return {
-        ...serializedTransaction,
-        id: Number(docRef.id)
-      } as Transaction;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast({
-        title: "Success",
-        description: "Transaction added successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Error adding transaction:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add transaction",
-        variant: "destructive",
-      });
-    }
-  });
+  const handleCardEdit = (cardId: string) => {
+    setEditingCard(cardId);
+  };
 
-  const handleCardEdit = async (cardId: string, newValue: number) => {
-    if (!user?.id) return;
-    
-    if (cardId === 'income') {
-      const difference = Number(newValue) - totalIncome;
+  const handleSaveEdit = (newValue: number) => {
+    if (editingCard === 'income') {
+      const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const newTransaction = {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: difference > 0 ? "income" as const : "expense" as const,
+          type: difference > 0 ? "income" : "expense",
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
-          userId: user.id
         };
-
-        addTransactionMutation.mutate(newTransaction);
+        setTransactions([newTransaction, ...transactions]);
+      }
+    } else if (editingCard === 'savings') {
+      const difference = newValue - savings;
+      if (difference !== 0) {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
+          description: "Manual Savings Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Savings Adjustment",
+          date: new Date().toISOString().split('T')[0],
+        };
+        setTransactions([newTransaction, ...transactions]);
       }
     }
+    
     setEditingCard(null);
   };
 
@@ -153,14 +92,10 @@ const Index = () => {
     return <Auth />;
   }
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.name || ''} onLogout={logout} />
+        <DashboardHeader userName={user.name} onLogout={logout} />
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
@@ -191,9 +126,7 @@ const Index = () => {
 
         <TransactionManager 
           transactions={transactions}
-          setTransactions={(newTransactions) => {
-            queryClient.setQueryData(['transactions', user.id], newTransactions);
-          }}
+          setTransactions={setTransactions}
         />
       </div>
 
@@ -201,7 +134,7 @@ const Index = () => {
         <EditValueDialog
           isOpen={true}
           onClose={() => setEditingCard(null)}
-          onSave={(value) => handleCardEdit(editingCard, value)}
+          onSave={handleSaveEdit}
           initialValue={editingCard === 'income' ? totalIncome : savings}
           title={editingCard === 'income' ? 'Total Income' : 'Savings'}
         />
@@ -209,5 +142,32 @@ const Index = () => {
     </div>
   );
 };
+
+const mockTransactions = [
+  {
+    id: 1,
+    description: "Salary",
+    amount: 5000,
+    type: "income" as const,
+    category: "Income",
+    date: "2024-03-15",
+  },
+  {
+    id: 2,
+    description: "Rent",
+    amount: 1500,
+    type: "expense" as const,
+    category: "Housing",
+    date: "2024-03-14",
+  },
+  {
+    id: 3,
+    description: "Groceries",
+    amount: 200,
+    type: "expense" as const,
+    category: "Food",
+    date: "2024-03-13",
+  },
+];
 
 export default Index;
