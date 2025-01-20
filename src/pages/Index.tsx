@@ -52,21 +52,21 @@ const Index = () => {
       title: "Total Income",
       value: totalIncome,
       icon: <ArrowUpIcon className="h-4 w-4 text-secondary" />,
-      className: "border-l-4 border-l-secondary"
+      className: "border-l-secondary"
     },
     {
       id: "expenses",
       title: "Total Expenses",
       value: totalExpenses,
       icon: <ArrowDownIcon className="h-4 w-4 text-destructive" />,
-      className: "border-l-4 border-l-destructive"
+      className: "border-l-destructive"
     },
     {
       id: "savings",
       title: "Savings",
       value: savings,
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
-      className: "border-l-4 border-l-primary"
+      className: "border-l-primary"
     }
   ]);
 
@@ -186,7 +186,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
         <div className="flex justify-between items-center">
           <div className="space-y-2">
@@ -196,7 +196,7 @@ const Index = () => {
           <Button variant="outline" onClick={logout}>Logout</Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           {dashboardCards.map((card) => (
             <DraggableDashboardCard
               key={card.id}

@@ -13,25 +13,25 @@ interface DashboardCardProps {
 
 export function DashboardCard({ title, value, className, icon, onEdit }: DashboardCardProps) {
   return (
-    <Card className={cn("animate-fade-in", className)}>
+    <Card className={cn("relative group hover:shadow-lg transition-all duration-300", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className="flex items-center gap-2">
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onEdit}
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
           {icon && <div className="text-muted-foreground">{icon}</div>}
         </div>
+        {onEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
       </CardContent>
     </Card>
   );
