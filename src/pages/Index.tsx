@@ -1,14 +1,13 @@
-import { DraggableDashboardCard } from "@/components/DraggableDashboardCard";
 import { TransactionList } from "@/components/TransactionList";
 import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
+import { TransactionForm } from "@/components/TransactionForm";
+import { DashboardStats } from "@/components/DashboardStats";
 
 interface Transaction {
   id: number;
@@ -19,24 +18,11 @@ interface Transaction {
   date: string;
 }
 
-interface DashboardCardData {
-  id: string;
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  className: string;
-}
-
 const Index = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   
-  // Move all useState declarations before any conditional returns
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
-  const [type, setType] = useState<"income" | "expense">("expense");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -46,7 +32,7 @@ const Index = () => {
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
 
-  const [dashboardCards, setDashboardCards] = useState<DashboardCardData[]>([
+  const [dashboardCards, setDashboardCards] = useState([
     {
       id: "income",
       title: "Total Income",
@@ -110,27 +96,13 @@ const Index = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!description || !amount || !category) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleTransactionSubmit = (transactionData: Omit<Transaction, 'id' | 'date'>) => {
     if (editingTransaction) {
       const updatedTransactions = transactions.map((t) =>
         t.id === editingTransaction.id
           ? {
               ...t,
-              description,
-              amount: parseFloat(amount),
-              type,
-              category,
+              ...transactionData,
             }
           : t
       );
@@ -143,10 +115,7 @@ const Index = () => {
     } else {
       const newTransaction: Transaction = {
         id: transactions.length + 1,
-        description,
-        amount: parseFloat(amount),
-        type,
-        category,
+        ...transactionData,
         date: new Date().toISOString().split('T')[0],
       };
       setTransactions([newTransaction, ...transactions]);
@@ -155,19 +124,10 @@ const Index = () => {
         description: "Transaction added successfully",
       });
     }
-
-    setDescription("");
-    setAmount("");
-    setCategory("");
-    setType("expense");
   };
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    setDescription(transaction.description);
-    setAmount(transaction.amount.toString());
-    setCategory(transaction.category);
-    setType(transaction.type);
   };
 
   const handleDelete = (id: number) => {
@@ -196,88 +156,22 @@ const Index = () => {
           <Button variant="outline" onClick={logout}>Logout</Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {dashboardCards.map((card) => (
-            <DraggableDashboardCard
-              key={card.id}
-              title={card.title}
-              value={formatCurrency(card.value)}
-              icon={card.icon}
-              className={card.className}
-              onDragStart={(e) => handleCardDragStart(e, card.id)}
-              onDragOver={handleCardDragOver}
-              onDrop={(e) => handleCardDrop(e, card.id)}
-              onEdit={() => handleCardEdit(card.id, card.value)}
-              isEditable={true}
-            />
-          ))}
-        </div>
+        <DashboardStats
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          savings={savings}
+          onCardDragStart={handleCardDragStart}
+          onCardDragOver={handleCardDragOver}
+          onCardDrop={handleCardDrop}
+          onCardEdit={handleCardEdit}
+          dashboardCards={dashboardCards}
+        />
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-6">
-            <h2 className="mb-4 text-lg font-semibold">Add Transaction</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description
-                </label>
-                <Input
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter description"
-                />
-              </div>
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                  Amount
-                </label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount"
-                />
-              </div>
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                  Category
-                </label>
-                <Input
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Enter category"
-                />
-              </div>
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                  Type
-                </label>
-                <div className="flex gap-4">
-                  <Button
-                    type="button"
-                    variant={type === "expense" ? "default" : "outline"}
-                    onClick={() => setType("expense")}
-                  >
-                    Expense
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={type === "income" ? "default" : "outline"}
-                    onClick={() => setType("income")}
-                  >
-                    Income
-                  </Button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full">
-                Add Transaction
-              </Button>
-            </form>
-          </Card>
+          <TransactionForm
+            onSubmit={handleTransactionSubmit}
+            editingTransaction={editingTransaction}
+          />
           
           <Card className="p-6">
             <h2 className="mb-4 text-lg font-semibold">Recent Transactions</h2>
