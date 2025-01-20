@@ -6,7 +6,7 @@ import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
 
@@ -30,6 +30,8 @@ interface DashboardCardData {
 const Index = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  
+  // Move all useState declarations before any conditional returns
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -39,10 +41,7 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  if (!user) {
-    return <Auth />;
-  }
-
+  // Calculate totals
   const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
@@ -70,6 +69,11 @@ const Index = () => {
       className: "border-l-4 border-l-primary"
     }
   ]);
+
+  // Early return for unauthenticated users
+  if (!user) {
+    return <Auth />;
+  }
 
   const handleCardEdit = (cardId: string, currentValue: number) => {
     setEditingCard(cardId);
@@ -204,7 +208,7 @@ const Index = () => {
               onDragOver={handleCardDragOver}
               onDrop={(e) => handleCardDrop(e, card.id)}
               onEdit={() => handleCardEdit(card.id, card.value)}
-              isEditable={card.id !== 'savings'} // Only allow editing of income and expenses
+              isEditable={card.id !== 'savings'}
             />
           ))}
         </div>
