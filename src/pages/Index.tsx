@@ -1,69 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
-import { DashboardHeader } from "@/components/DashboardHeader";
-import { DashboardStats } from "@/components/DashboardStats";
-import { TransactionManager } from "@/components/TransactionManager";
-import { EditValueDialog } from "@/components/EditValueDialog";
-import { DashboardOverview } from "@/components/DashboardOverview";
-import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
-import { useState } from "react";
+import { DashboardContainer } from "@/components/dashboard/DashboardContainer";
 import { useTransactions } from "@/hooks/useTransactions";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
 
 const Index = () => {
   const { user, logout } = useAuth();
-  const [editingCard, setEditingCard] = useState<string | null>(null);
-  const { transactions, isLoading, addTransaction } = useTransactions();
-  const queryClient = useQueryClient();
-
-  // Calculate totals
-  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
-  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
-  const savings = totalIncome - totalExpenses;
-
-  const dashboardCards = [
-    {
-      id: "income",
-      title: "Total Income",
-      value: totalIncome,
-      icon: <ArrowUpIcon className="h-4 w-4 text-secondary" />,
-      className: "border-l-secondary"
-    },
-    {
-      id: "expenses",
-      title: "Total Expenses",
-      value: totalExpenses,
-      icon: <ArrowDownIcon className="h-4 w-4 text-destructive" />,
-      className: "border-l-destructive"
-    },
-    {
-      id: "savings",
-      title: "Savings",
-      value: savings,
-      icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
-      className: "border-l-primary"
-    }
-  ];
-
-  const handleCardEdit = async (cardId: string, newValue: number) => {
-    if (cardId === 'income') {
-      const difference = newValue - totalIncome;
-      if (difference !== 0) {
-        const newTransaction = {
-          description: "Manual Income Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? "income" as const : "expense" as const,
-          category: "Adjustment",
-          date: new Date().toISOString().split('T')[0],
-          userId: user!.id
-        };
-        addTransaction(newTransaction);
-      }
-    }
-    setEditingCard(null);
-  };
+  const { transactions, isLoading } = useTransactions();
 
   if (!user) {
     return <Auth />;
@@ -74,43 +16,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.name || ''} onLogout={logout} />
-        <DashboardOverview transactions={transactions} />
-        <DashboardStats
-          totalIncome={totalIncome}
-          totalExpenses={totalExpenses}
-          savings={savings}
-          onCardEdit={handleCardEdit}
-          dashboardCards={dashboardCards}
-        />
-
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold">Recent Transactions</h3>
-          <Link to="/transactions">
-            <Button variant="outline">View All Transactions</Button>
-          </Link>
-        </div>
-
-        <TransactionManager 
-          transactions={transactions}
-          setTransactions={(newTransactions) => {
-            queryClient.setQueryData(['transactions', user.id], newTransactions);
-          }}
-        />
-      </div>
-
-      {editingCard && (
-        <EditValueDialog
-          isOpen={true}
-          onClose={() => setEditingCard(null)}
-          onSave={(value) => handleCardEdit(editingCard, value)}
-          initialValue={editingCard === 'income' ? totalIncome : savings}
-          title={editingCard === 'income' ? 'Total Income' : 'Savings'}
-        />
-      )}
-    </div>
+    <DashboardContainer
+      user={user}
+      transactions={transactions}
+      onLogout={logout}
+    />
   );
 };
 
