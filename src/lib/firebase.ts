@@ -1,52 +1,29 @@
-import { initializeApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, FirebaseApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
-// Validate that all required Firebase config values are present
-const validateFirebaseConfig = (config: Record<string, string | undefined>): boolean => {
-  const requiredFields = [
-    'apiKey',
-    'authDomain',
-    'projectId',
-    'storageBucket',
-    'messagingSenderId',
-    'appId'
-  ];
-
-  return requiredFields.every(field => {
-    const value = config[field];
-    if (!value) {
-      console.error(`Missing Firebase config: ${field}`);
-      return false;
-    }
-    return true;
-  });
-};
-
-let app: FirebaseApp | null = null;
-let analytics = null;
-
-if (validateFirebaseConfig(firebaseConfig)) {
-  try {
-    app = initializeApp(firebaseConfig);
-    analytics = getAnalytics(app);
-    console.log("Firebase initialized successfully");
-  } catch (error) {
-    console.error("Error initializing Firebase:", error);
-  }
+// Initialize Firebase only if it hasn't been initialized already
+let app: FirebaseApp;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
 } else {
-  console.error("Firebase configuration is incomplete. Please check your .env file.");
+  app = getApps()[0];
 }
 
-export const auth = app ? getAuth(app) : null;
-export const isFirebaseConfigured = Boolean(app);
+// Initialize Analytics only in browser environment
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain);
