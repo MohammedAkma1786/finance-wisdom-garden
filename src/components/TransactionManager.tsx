@@ -2,8 +2,16 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionList } from "@/components/TransactionList";
-import { useTransactions, Transaction } from "@/hooks/useTransactions";
-import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+}
 
 interface TransactionManagerProps {
   transactions: Transaction[];
@@ -11,68 +19,54 @@ interface TransactionManagerProps {
 }
 
 export function TransactionManager({ transactions, setTransactions }: TransactionManagerProps) {
+  const { toast } = useToast();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const { user } = useAuth();
-  const { addTransaction } = useTransactions();
 
-  const handleTransactionSubmit = async (transaction: Omit<Transaction, 'id'>) => {
-    if (!user?.id) return;
-
-    // Create a serializable transaction object
-    const newTransaction = {
-      description: transaction.description || '',
-      amount: Number(transaction.amount) || 0,
-      type: transaction.type,
-      category: transaction.category || '',
-      date: transaction.date || new Date().toISOString().split('T')[0],
-      userId: user.id,
-    };
-
-    addTransaction(newTransaction);
-    setEditingTransaction(null);
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+    if (editingTransaction) {
+      const updatedTransactions = transactions.map((t) =>
+        t.id === editingTransaction.id
+          ? {
+              ...transaction,
+              id: editingTransaction.id,
+              date: editingTransaction.date
+            }
+          : t
+      );
+      setTransactions(updatedTransactions);
+      setEditingTransaction(null);
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+    } else {
+      const newTransaction: Transaction = {
+        ...transaction,
+        id: transactions.length + 1,
+        date: new Date().toISOString().split('T')[0],
+      };
+      setTransactions([newTransaction, ...transactions]);
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
+    }
   };
 
   const handleEdit = (transaction: Transaction) => {
-    // Create a serializable copy of the transaction
-    const serializableTransaction = {
-      id: transaction.id,
-      description: transaction.description || '',
-      amount: Number(transaction.amount) || 0,
-      type: transaction.type,
-      category: transaction.category || '',
-      date: transaction.date || new Date().toISOString().split('T')[0],
-      userId: transaction.userId || '',
-    };
-    setEditingTransaction(serializableTransaction);
+    setEditingTransaction(transaction);
   };
 
   const handleDelete = (id: number) => {
-    // Create a new array with serializable transaction objects
-    const updatedTransactions = transactions
-      .filter((t) => t.id !== id)
-      .map(t => ({
-        id: t.id,
-        description: t.description || '',
-        amount: Number(t.amount) || 0,
-        type: t.type,
-        category: t.category || '',
-        date: t.date || new Date().toISOString().split('T')[0],
-        userId: t.userId || '',
-      }));
-    setTransactions(updatedTransactions);
+    setTransactions(transactions.filter((t) => t.id !== id));
+    toast({
+      title: "Success",
+      description: "Transaction deleted successfully",
+    });
   };
 
   const handleReorder = (startIndex: number, endIndex: number) => {
-    // Create a new array with serializable transaction objects
-    const reorderedTransactions = [...transactions].map(t => ({
-      id: t.id,
-      description: t.description || '',
-      amount: Number(t.amount) || 0,
-      type: t.type,
-      category: t.category || '',
-      date: t.date || new Date().toISOString().split('T')[0],
-      userId: t.userId || '',
-    }));
+    const reorderedTransactions = [...transactions];
     const [removed] = reorderedTransactions.splice(startIndex, 1);
     reorderedTransactions.splice(endIndex, 0, removed);
     setTransactions(reorderedTransactions);
