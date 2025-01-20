@@ -26,20 +26,19 @@ const Index = () => {
       try {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
+        
+        // Convert Firestore data to serializable format
         const loadedTransactions = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Ensure type is explicitly cast as "income" | "expense"
-          const transactionType = data.type === "income" ? "income" : "expense";
-          
           return {
             id: parseInt(doc.id),
             description: String(data.description || ""),
             amount: Number(data.amount || 0),
-            type: transactionType,
+            type: data.type === "income" ? "income" : "expense",
             category: String(data.category || ""),
             date: String(data.date || new Date().toISOString().split('T')[0]),
             userId: String(data.userId || "")
-          } as Transaction;
+          } satisfies Transaction;
         });
         
         setTransactions(loadedTransactions);
@@ -137,19 +136,20 @@ const Index = () => {
     if (!user?.id || !db) return;
 
     try {
-      // Ensure all transactions have the correct type
+      // Convert transactions to serializable format
       const processedTransactions = newTransactions.map(t => ({
         ...t,
         amount: Number(t.amount),
-        type: t.type === "income" ? "income" : "expense" as const,
+        type: t.type,
         date: String(t.date),
         userId: user.id
-      })) as Transaction[];
+      })) satisfies Transaction[];
 
       // Update Firestore with the new transactions
       for (const transaction of processedTransactions) {
         if (!transactions.find(t => t.id === transaction.id)) {
-          await addDoc(collection(db, 'transactions'), transaction);
+          const { id, ...transactionData } = transaction;
+          await addDoc(collection(db, 'transactions'), transactionData);
         }
       }
 
