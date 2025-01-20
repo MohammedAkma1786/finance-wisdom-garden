@@ -24,7 +24,7 @@ const Index = () => {
   return (
     <DashboardContainer
       user={serializedUser}
-      transactions={transactions}
+      transactions={transactions || []}
       onLogout={logout}
     />
   );

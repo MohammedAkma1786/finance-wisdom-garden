@@ -22,22 +22,46 @@ export const useTransactions = () => {
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
-      if (!user || !db) return [];
-      const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: parseInt(doc.id),
-        type: doc.data().type as "income" | "expense"
-      })) as Transaction[];
+      if (!user?.id || !db) return [];
+      
+      try {
+        const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
+        const querySnapshot = await getDocs(q);
+        
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: parseInt(doc.id),
+            description: data.description || '',
+            amount: Number(data.amount) || 0,
+            type: data.type as "income" | "expense",
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0],
+            userId: data.userId
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
-    enabled: !!user && !!db
+    enabled: !!user?.id && !!db
   });
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
-      const docRef = await addDoc(collection(db, 'transactions'), newTransaction);
-      return { ...newTransaction, id: parseInt(docRef.id) };
+      if (!db) throw new Error('Database not initialized');
+      
+      const docRef = await addDoc(collection(db, 'transactions'), {
+        ...newTransaction,
+        amount: Number(newTransaction.amount),
+        date: newTransaction.date || new Date().toISOString().split('T')[0]
+      });
+      
+      return {
+        ...newTransaction,
+        id: parseInt(docRef.id)
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -57,7 +81,7 @@ export const useTransactions = () => {
   });
 
   return {
-    transactions,
+    transactions: transactions as Transaction[],
     isLoading,
     addTransaction: addTransactionMutation.mutate
   };
