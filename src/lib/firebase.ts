@@ -1,38 +1,22 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-const FIREBASE_CONFIG_KEY = 'firebase_config';
-
-interface FirebaseConfig {
-  apiKey: string;
-  authDomain: string;
-  projectId: string;
-  storageBucket: string;
-  messagingSenderId: string;
-  appId: string;
-}
-
-export const getStoredFirebaseConfig = (): FirebaseConfig | null => {
-  const stored = localStorage.getItem(FIREBASE_CONFIG_KEY);
-  return stored ? JSON.parse(stored) : null;
-};
-
-export const setFirebaseConfig = (config: FirebaseConfig) => {
-  localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
-  window.location.reload(); // Reload to reinitialize Firebase with new config
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 let app: FirebaseApp | null = null;
-let firebaseConfig = getStoredFirebaseConfig();
 
-if (firebaseConfig) {
-  try {
-    app = initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully");
-  } catch (error) {
-    console.error("Error initializing Firebase:", error);
-    localStorage.removeItem(FIREBASE_CONFIG_KEY);
-  }
+try {
+  app = initializeApp(firebaseConfig);
+  console.log("Firebase initialized successfully");
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
 }
 
 export const auth = app ? getAuth(app) : null;
