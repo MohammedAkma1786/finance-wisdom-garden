@@ -23,8 +23,21 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
-  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
+  // Ensure we're working with serializable data
+  const serializedTransactions = transactions.map(t => ({
+    id: Number(t.id) || Date.now(),
+    description: String(t.description || ''),
+    amount: Number(t.amount) || 0,
+    type: t.type === 'income' ? 'income' : 'expense',
+    category: String(t.category || ''),
+    date: String(t.date || new Date().toISOString().split('T')[0]),
+    userId: String(t.userId || '')
+  }));
+
+  const totalIncome = serializedTransactions.reduce((sum, t) => 
+    t.type === "income" ? sum + (Number(t.amount) || 0) : sum, 0);
+  const totalExpenses = serializedTransactions.reduce((sum, t) => 
+    t.type === "expense" ? sum + (Number(t.amount) || 0) : sum, 0);
   const savings = totalIncome - totalExpenses;
 
   const dashboardCards = [
@@ -55,18 +68,18 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        queryClient.setQueryData(['transactions', user.id], (prev: Transaction[] = []) => [
-          ...prev,
-          {
-            id: Date.now(),
-            description: "Manual Income Adjustment",
-            amount: Math.abs(difference),
-            type: difference > 0 ? "income" : "expense",
-            category: "Adjustment",
-            date: new Date().toISOString().split('T')[0],
-            userId: user.id
-          }
-        ]);
+        const newTransaction = {
+          id: Date.now(),
+          description: "Manual Income Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Adjustment",
+          date: new Date().toISOString().split('T')[0],
+          userId: String(user.id || '')
+        };
+
+        queryClient.setQueryData(['transactions', user.id], 
+          (prev: Transaction[] = []) => [...prev, newTransaction]);
       }
     }
     setEditingCard(null);
@@ -75,8 +88,8 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.name || 'User'} onLogout={onLogout} />
-        <DashboardOverview transactions={transactions} />
+        <DashboardHeader userName={String(user.name || 'User')} onLogout={onLogout} />
+        <DashboardOverview transactions={serializedTransactions} />
         <DashboardStats
           totalIncome={totalIncome}
           totalExpenses={totalExpenses}
@@ -93,9 +106,19 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
         </div>
 
         <TransactionManager 
-          transactions={transactions}
+          transactions={serializedTransactions}
           setTransactions={(newTransactions) => {
-            queryClient.setQueryData(['transactions', user.id], newTransactions);
+            // Ensure the new transactions are serializable
+            const serialized = newTransactions.map(t => ({
+              id: Number(t.id) || Date.now(),
+              description: String(t.description || ''),
+              amount: Number(t.amount) || 0,
+              type: t.type === 'income' ? 'income' : 'expense',
+              category: String(t.category || ''),
+              date: String(t.date || new Date().toISOString().split('T')[0]),
+              userId: String(t.userId || '')
+            }));
+            queryClient.setQueryData(['transactions', user.id], serialized);
           }}
         />
       </div>
@@ -104,7 +127,7 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
         <EditValueDialog
           isOpen={true}
           onClose={() => setEditingCard(null)}
-          onSave={(value) => handleCardEdit(editingCard, value)}
+          onSave={(value) => handleCardEdit(editingCard, Number(value) || 0)}
           initialValue={editingCard === 'income' ? totalIncome : savings}
           title={editingCard === 'income' ? 'Total Income' : 'Savings'}
         />
