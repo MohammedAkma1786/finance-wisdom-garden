@@ -208,7 +208,7 @@ const Index = () => {
               onDragOver={handleCardDragOver}
               onDrop={(e) => handleCardDrop(e, card.id)}
               onEdit={() => handleCardEdit(card.id, card.value)}
-              isEditable={card.id !== 'savings'}
+              isEditable={true}
             />
           ))}
         </div>
