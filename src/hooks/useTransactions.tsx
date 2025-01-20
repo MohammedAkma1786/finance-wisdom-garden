@@ -28,16 +28,17 @@ export const useTransactions = () => {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
         
+        // Ensure we return only serializable data
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
           return {
-            id: parseInt(doc.id),
-            description: data.description || '',
+            id: parseInt(doc.id) || Date.now(),
+            description: String(data.description || ''),
             amount: Number(data.amount) || 0,
-            type: data.type as "income" | "expense",
-            category: data.category || '',
-            date: data.date || new Date().toISOString().split('T')[0],
-            userId: data.userId
+            type: (data.type === 'income' ? 'income' : 'expense') as 'income' | 'expense',
+            category: String(data.category || ''),
+            date: data.date ? String(data.date) : new Date().toISOString().split('T')[0],
+            userId: String(data.userId || '')
           };
         });
       } catch (error) {
@@ -45,22 +46,29 @@ export const useTransactions = () => {
         return [];
       }
     },
-    enabled: !!user?.id && !!db
+    enabled: !!user?.id && !!db,
+    staleTime: 1000 * 60 * 5 // Cache for 5 minutes
   });
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!db) throw new Error('Database not initialized');
       
-      const docRef = await addDoc(collection(db, 'transactions'), {
-        ...newTransaction,
-        amount: Number(newTransaction.amount),
-        date: newTransaction.date || new Date().toISOString().split('T')[0]
-      });
+      // Ensure we're only sending serializable data
+      const serializedTransaction = {
+        description: String(newTransaction.description || ''),
+        amount: Number(newTransaction.amount) || 0,
+        type: newTransaction.type === 'income' ? 'income' : 'expense',
+        category: String(newTransaction.category || ''),
+        date: String(newTransaction.date || new Date().toISOString().split('T')[0]),
+        userId: String(newTransaction.userId || '')
+      };
+      
+      const docRef = await addDoc(collection(db, 'transactions'), serializedTransaction);
       
       return {
-        ...newTransaction,
-        id: parseInt(docRef.id)
+        ...serializedTransaction,
+        id: parseInt(docRef.id) || Date.now()
       };
     },
     onSuccess: () => {
