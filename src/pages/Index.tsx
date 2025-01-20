@@ -19,7 +19,6 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load transactions from Firestore
   useEffect(() => {
     const loadTransactions = async () => {
       if (!user?.id || !db) return;
@@ -27,20 +26,20 @@ const Index = () => {
       try {
         const q = query(collection(db, 'transactions'), where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
-        const loadedTransactions: Transaction[] = querySnapshot.docs.map(doc => {
+        const loadedTransactions = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Ensure type is correctly cast as "income" | "expense"
-          const type = data.type === "income" ? "income" : "expense";
+          // Ensure type is explicitly cast as "income" | "expense"
+          const transactionType = data.type === "income" ? "income" : "expense";
           
           return {
             id: parseInt(doc.id),
             description: String(data.description || ""),
             amount: Number(data.amount || 0),
-            type,
+            type: transactionType,
             category: String(data.category || ""),
             date: String(data.date || new Date().toISOString().split('T')[0]),
             userId: String(data.userId || "")
-          };
+          } as Transaction;
         });
         
         setTransactions(loadedTransactions);
@@ -57,7 +56,6 @@ const Index = () => {
     loadTransactions();
   }, [user]);
 
-  // Calculate totals using serializable values
   const totalIncome = transactions.reduce((sum, t) => 
     t.type === "income" ? sum + Number(t.amount) : sum, 0);
   const totalExpenses = transactions.reduce((sum, t) => 
@@ -110,7 +108,12 @@ const Index = () => {
 
           const docRef = await addDoc(collection(db, 'transactions'), newTransaction);
           
-          setTransactions(prev => [...prev, { ...newTransaction, id: prev.length + 1 }]);
+          const updatedTransaction: Transaction = {
+            ...newTransaction,
+            id: transactions.length + 1
+          };
+          
+          setTransactions(prev => [...prev, updatedTransaction]);
           
           toast({
             title: "Success",
@@ -135,22 +138,22 @@ const Index = () => {
 
     try {
       // Ensure all transactions have the correct type
-      const serializedTransactions = newTransactions.map(t => ({
+      const processedTransactions = newTransactions.map(t => ({
         ...t,
         amount: Number(t.amount),
         type: t.type === "income" ? "income" : "expense" as const,
         date: String(t.date),
         userId: user.id
-      }));
+      })) as Transaction[];
 
       // Update Firestore with the new transactions
-      for (const transaction of serializedTransactions) {
+      for (const transaction of processedTransactions) {
         if (!transactions.find(t => t.id === transaction.id)) {
           await addDoc(collection(db, 'transactions'), transaction);
         }
       }
 
-      setTransactions(serializedTransactions);
+      setTransactions(processedTransactions);
       toast({
         title: "Success",
         description: "Transactions updated successfully",
