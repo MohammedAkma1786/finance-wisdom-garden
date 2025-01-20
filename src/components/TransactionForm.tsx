@@ -139,7 +139,7 @@ export function TransactionForm({ onSubmit, editingTransaction }: TransactionFor
                 selected={date}
                 onSelect={(newDate) => setDate(newDate || new Date())}
                 initialFocus
-                className="[&_.rdp-day_button:hover]:bg-primary [&_.rdp-day_button[aria-selected]]:bg-white [&_.rdp-day_button[aria-selected]]:text-primary [&_.rdp-day_button[aria-selected]]:hover:bg-white"
+                className="[&_.rdp-day_button:hover]:bg-primary [&_.rdp-day_button[aria-selected]]:text-primary [&_.rdp-day_button[aria-selected]]:hover:text-primary"
               />
             </PopoverContent>
           </Popover>
