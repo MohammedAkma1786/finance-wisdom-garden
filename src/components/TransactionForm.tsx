@@ -1,8 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TransactionFormProps {
   onSubmit: (transaction: {
@@ -10,12 +15,14 @@ interface TransactionFormProps {
     amount: number;
     type: "income" | "expense";
     category: string;
+    date: string;
   }) => void;
   editingTransaction: {
     description: string;
     amount: number;
     type: "income" | "expense";
     category: string;
+    date: string;
   } | null;
 }
 
@@ -25,6 +32,19 @@ export function TransactionForm({ onSubmit, editingTransaction }: TransactionFor
   const [amount, setAmount] = useState(editingTransaction?.amount.toString() || "");
   const [category, setCategory] = useState(editingTransaction?.category || "");
   const [type, setType] = useState<"income" | "expense">(editingTransaction?.type || "expense");
+  const [date, setDate] = useState<Date>(
+    editingTransaction?.date ? new Date(editingTransaction.date) : new Date()
+  );
+
+  useEffect(() => {
+    if (editingTransaction) {
+      setDescription(editingTransaction.description);
+      setAmount(editingTransaction.amount.toString());
+      setCategory(editingTransaction.category);
+      setType(editingTransaction.type);
+      setDate(new Date(editingTransaction.date));
+    }
+  }, [editingTransaction]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,17 +63,23 @@ export function TransactionForm({ onSubmit, editingTransaction }: TransactionFor
       amount: parseFloat(amount),
       type,
       category,
+      date: date.toISOString().split('T')[0],
     });
 
-    setDescription("");
-    setAmount("");
-    setCategory("");
-    setType("expense");
+    if (!editingTransaction) {
+      setDescription("");
+      setAmount("");
+      setCategory("");
+      setType("expense");
+      setDate(new Date());
+    }
   };
 
   return (
     <Card className="p-6">
-      <h2 className="mb-4 text-lg font-semibold">Add Transaction</h2>
+      <h2 className="mb-4 text-lg font-semibold">
+        {editingTransaction ? "Edit" : "Add"} Transaction
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">
@@ -89,6 +115,33 @@ export function TransactionForm({ onSubmit, editingTransaction }: TransactionFor
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Enter category"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Date
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(newDate) => setDate(newDate || new Date())}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div>
           <label htmlFor="type" className="block text-sm font-medium text-gray-700">
