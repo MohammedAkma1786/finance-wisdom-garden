@@ -25,6 +25,9 @@ export function DraggableDashboardCard({
   onEdit,
   isEditable = false,
 }: DraggableDashboardCardProps) {
+  // Only enable edit for Total Income and Savings
+  const shouldShowEdit = isEditable && (title === "Total Income" || title === "Savings");
+
   return (
     <div
       draggable
@@ -46,7 +49,7 @@ export function DraggableDashboardCard({
             className,
             "hover:bg-background/50 backdrop-blur-sm"
           )}
-          onEdit={undefined}
+          onEdit={shouldShowEdit ? onEdit : undefined}
         />
       </div>
     </div>
