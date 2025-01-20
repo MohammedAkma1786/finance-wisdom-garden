@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useToast } from '../hooks/use-toast';
-import { FirebaseConfig } from './FirebaseConfig';
 import { isFirebaseConfigured } from '../lib/firebase';
 
 export const Auth = () => {
@@ -16,7 +15,14 @@ export const Auth = () => {
   const { toast } = useToast();
 
   if (!isFirebaseConfigured) {
-    return <FirebaseConfig />;
+    return (
+      <div className="p-6 text-center">
+        <h2 className="text-xl font-semibold text-red-600 mb-2">Firebase Not Configured</h2>
+        <p className="text-gray-600">
+          Please ensure your Firebase environment variables are properly set in the .env file.
+        </p>
+      </div>
+    );
   }
 
   const validatePassword = (password: string): boolean => {
