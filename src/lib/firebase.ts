@@ -1,39 +1,29 @@
-import { initializeApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, FirebaseApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getFirestore } from 'firebase/firestore';
 
-const FIREBASE_CONFIG_KEY = 'firebase_config';
-
-interface FirebaseConfig {
-  apiKey: string;
-  authDomain: string;
-  projectId: string;
-  storageBucket: string;
-  messagingSenderId: string;
-  appId: string;
-}
-
-export const getStoredFirebaseConfig = (): FirebaseConfig | null => {
-  const stored = localStorage.getItem(FIREBASE_CONFIG_KEY);
-  return stored ? JSON.parse(stored) : null;
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
-export const setFirebaseConfig = (config: FirebaseConfig) => {
-  localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
-  window.location.reload(); // Reload to reinitialize Firebase with new config
-};
-
-let app: FirebaseApp | null = null;
-let firebaseConfig = getStoredFirebaseConfig();
-
-if (firebaseConfig) {
-  try {
-    app = initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully");
-  } catch (error) {
-    console.error("Error initializing Firebase:", error);
-    localStorage.removeItem(FIREBASE_CONFIG_KEY);
-  }
+// Initialize Firebase only if it hasn't been initialized already
+let app: FirebaseApp;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
 }
 
-export const auth = app ? getAuth(app) : null;
-export const isFirebaseConfigured = Boolean(app);
+// Initialize Analytics only in browser environment
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain);
