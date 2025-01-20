@@ -27,6 +27,7 @@ const Index = () => {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   if (!user) {
     return <Auth />;
@@ -48,24 +49,67 @@ const Index = () => {
       return;
     }
 
-    const newTransaction: Transaction = {
-      id: transactions.length + 1,
-      description,
-      amount: parseFloat(amount),
-      type,
-      category,
-      date: new Date().toISOString().split('T')[0],
-    };
+    if (editingTransaction) {
+      const updatedTransactions = transactions.map((t) =>
+        t.id === editingTransaction.id
+          ? {
+              ...t,
+              description,
+              amount: parseFloat(amount),
+              type,
+              category,
+            }
+          : t
+      );
+      setTransactions(updatedTransactions);
+      setEditingTransaction(null);
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+    } else {
+      const newTransaction: Transaction = {
+        id: transactions.length + 1,
+        description,
+        amount: parseFloat(amount),
+        type,
+        category,
+        date: new Date().toISOString().split('T')[0],
+      };
+      setTransactions([newTransaction, ...transactions]);
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
+    }
 
-    setTransactions([newTransaction, ...transactions]);
     setDescription("");
     setAmount("");
     setCategory("");
+    setType("expense");
+  };
 
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setDescription(transaction.description);
+    setAmount(transaction.amount.toString());
+    setCategory(transaction.category);
+    setType(transaction.type);
+  };
+
+  const handleDelete = (id: number) => {
+    setTransactions(transactions.filter((t) => t.id !== id));
     toast({
       title: "Success",
-      description: "Transaction added successfully",
+      description: "Transaction deleted successfully",
     });
+  };
+
+  const handleReorder = (startIndex: number, endIndex: number) => {
+    const result = Array.from(transactions);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    setTransactions(result);
   };
 
   return (
@@ -168,7 +212,12 @@ const Index = () => {
           
           <Card className="p-6">
             <h2 className="mb-4 text-lg font-semibold">Recent Transactions</h2>
-            <TransactionList transactions={transactions} />
+            <TransactionList 
+              transactions={transactions}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReorder={handleReorder}
+            />
           </Card>
         </div>
       </div>
