@@ -8,6 +8,7 @@ import { PlannerGrid } from "@/components/PlannerGrid";
 import { ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ExpenseEntry, DayExpenses } from "./YearlyPlanner";
+import { useNavigate } from "react-router-dom";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -17,10 +18,13 @@ const months = [
 const MonthPlanner = () => {
   const { monthId } = useParams();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [expenses, setExpenses] = useState<DayExpenses>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [recurringMonths, setRecurringMonths] = useState("");
   const [showDetails, setShowDetails] = useState(false);
 
   const handleDateSelect = (date: Date) => {
@@ -38,31 +42,47 @@ const MonthPlanner = () => {
   };
 
   const handleSaveExpense = () => {
-    selectedDates.forEach(date => {
-      const dateKey = date.toISOString().split('T')[0];
-      const expense: ExpenseEntry = {
-        amount: 0,
-        description: description,
-        title: title,
-        recurringMonths: 1,
-        createdAt: new Date().toISOString()
-      };
+    if (!amount || isNaN(Number(amount))) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      setExpenses(prev => ({
-        ...prev,
-        [dateKey]: [...(prev[dateKey] || []), expense]
-      }));
-    });
+    if (!title.trim()) {
+      toast({
+        title: "Missing title",
+        description: "Please enter a title for your expense",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const months = recurringMonths ? parseInt(recurringMonths) : 1;
+    
+    const expense: ExpenseEntry = {
+      amount: Number(amount),
+      description,
+      title,
+      recurringMonths: months,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Get existing expenses from localStorage
+    const existingExpenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+    
+    // Add new expense
+    localStorage.setItem("expenses", JSON.stringify([...existingExpenses, expense]));
     
     toast({
-      title: "Expenses saved",
-      description: `Expenses saved for ${selectedDates.length} dates.`,
+      title: "Expense saved",
+      description: "Your expense has been successfully recorded.",
     });
 
-    setTitle("");
-    setDescription("");
-    setSelectedDates([]);
-    setShowDetails(false);
+    // Navigate to current plans page
+    navigate("/current-plans");
   };
 
   return (
@@ -77,10 +97,12 @@ const MonthPlanner = () => {
           <h1 className="text-2xl font-bold">
             {monthId !== undefined ? months[parseInt(monthId)] : ''} Expense Planner
           </h1>
-          <div className="w-10" />
+          <Link to="/current-plans">
+            <Button variant="outline">View Current Plans</Button>
+          </Link>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-8">
           <Card className="p-4">
             <p className="text-sm text-muted-foreground mb-2">
               Selected dates: {selectedDates.length}
@@ -94,27 +116,52 @@ const MonthPlanner = () => {
           </Card>
 
           {showDetails && (
-            <Card className="p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Title</label>
+            <Card className="p-6">
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Add New Expense</h2>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
                   <Input
+                    placeholder="Enter planner title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter planner title"
-                    className="bg-white border-gray-200 focus:border-primary"
+                    className="max-w-xs"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
                   <Textarea
+                    placeholder="Enter planner description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter planner description"
-                    className="bg-white border-gray-200 focus:border-primary resize-none h-24"
+                    className="max-w-md"
                   />
                 </div>
-                <Button onClick={handleSaveExpense}>Save Expenses</Button>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount ($)</label>
+                  <Input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="max-w-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Recurring Months</label>
+                  <Input
+                    type="number"
+                    placeholder="Number of months (optional)"
+                    value={recurringMonths}
+                    onChange={(e) => setRecurringMonths(e.target.value)}
+                    className="max-w-xs"
+                  />
+                </div>
+
+                <Button onClick={handleSaveExpense}>Save Expense</Button>
               </div>
             </Card>
           )}
