@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DashboardStats } from "@/components/DashboardStats";
+import { EditValueDialog } from "@/components/EditValueDialog";
 
 interface Transaction {
   id: number;
@@ -25,7 +26,6 @@ const Index = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingCard, setEditingCard] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
 
   // Calculate totals
   const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
@@ -56,14 +56,43 @@ const Index = () => {
     }
   ]);
 
-  // Early return for unauthenticated users
-  if (!user) {
-    return <Auth />;
-  }
-
   const handleCardEdit = (cardId: string, currentValue: number) => {
     setEditingCard(cardId);
-    setEditValue(currentValue.toString());
+  };
+
+  const handleSaveEdit = (newValue: number) => {
+    if (editingCard === 'income') {
+      // Add a new income transaction
+      const newTransaction: Transaction = {
+        id: transactions.length + 1,
+        description: "Manual Income Adjustment",
+        amount: newValue - totalIncome,
+        type: "income",
+        category: "Income",
+        date: new Date().toISOString().split('T')[0],
+      };
+      setTransactions([newTransaction, ...transactions]);
+      toast({
+        title: "Success",
+        description: "Income updated successfully",
+      });
+    } else if (editingCard === 'savings') {
+      // Add a new savings transaction
+      const newTransaction: Transaction = {
+        id: transactions.length + 1,
+        description: "Manual Savings Adjustment",
+        amount: newValue - savings,
+        type: newValue > savings ? "income" : "expense",
+        category: "Savings",
+        date: new Date().toISOString().split('T')[0],
+      };
+      setTransactions([newTransaction, ...transactions]);
+      toast({
+        title: "Success",
+        description: "Savings updated successfully",
+      });
+    }
+    setEditingCard(null);
   };
 
   const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
@@ -96,54 +125,10 @@ const Index = () => {
     }
   };
 
-  const handleTransactionSubmit = (transactionData: Omit<Transaction, 'id' | 'date'>) => {
-    if (editingTransaction) {
-      const updatedTransactions = transactions.map((t) =>
-        t.id === editingTransaction.id
-          ? {
-              ...t,
-              ...transactionData,
-            }
-          : t
-      );
-      setTransactions(updatedTransactions);
-      setEditingTransaction(null);
-      toast({
-        title: "Success",
-        description: "Transaction updated successfully",
-      });
-    } else {
-      const newTransaction: Transaction = {
-        id: transactions.length + 1,
-        ...transactionData,
-        date: new Date().toISOString().split('T')[0],
-      };
-      setTransactions([newTransaction, ...transactions]);
-      toast({
-        title: "Success",
-        description: "Transaction added successfully",
-      });
-    }
-  };
-
-  const handleEdit = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-  };
-
-  const handleDelete = (id: number) => {
-    setTransactions(transactions.filter((t) => t.id !== id));
-    toast({
-      title: "Success",
-      description: "Transaction deleted successfully",
-    });
-  };
-
-  const handleReorder = (startIndex: number, endIndex: number) => {
-    const result = Array.from(transactions);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-    setTransactions(result);
-  };
+  // Early return for unauthenticated users
+  if (!user) {
+    return <Auth />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
@@ -184,6 +169,16 @@ const Index = () => {
           </Card>
         </div>
       </div>
+
+      {editingCard && (
+        <EditValueDialog
+          isOpen={true}
+          onClose={() => setEditingCard(null)}
+          onSave={handleSaveEdit}
+          initialValue={editingCard === 'income' ? totalIncome : savings}
+          title={editingCard === 'income' ? 'Total Income' : 'Savings'}
+        />
+      )}
     </div>
   );
 };
