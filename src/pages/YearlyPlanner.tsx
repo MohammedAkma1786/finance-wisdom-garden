@@ -7,13 +7,6 @@ import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export interface ExpenseEntry {
   amount: number;
@@ -65,23 +58,20 @@ const YearlyPlanner = () => {
 
         <Card className="p-6">
           <div className="grid gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Month</label>
-              <Select
-                value={selectedMonth}
-                onValueChange={setSelectedMonth}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month, index) => (
-                    <SelectItem key={month} value={String(index)}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Select a Month</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {months.map((month, index) => (
+                  <Button
+                    key={month}
+                    variant={selectedMonth === String(index) ? "default" : "outline"}
+                    className="h-24 text-lg font-medium"
+                    onClick={() => setSelectedMonth(String(index))}
+                  >
+                    {month}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </Card>
