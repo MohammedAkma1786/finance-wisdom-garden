@@ -33,16 +33,31 @@ const Index = () => {
   const savings = totalIncome - totalExpenses;
 
   const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: transactions.length + 1,
-      date: new Date().toISOString().split('T')[0],
-    };
-    setTransactions([newTransaction, ...transactions]);
-    toast({
-      title: "Success",
-      description: "Transaction added successfully",
-    });
+    if (editingTransaction) {
+      // Update existing transaction
+      const updatedTransactions = transactions.map((t) =>
+        t.id === editingTransaction.id
+          ? { ...transaction, id: t.id, date: t.date }
+          : t
+      );
+      setTransactions(updatedTransactions);
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
+    } else {
+      // Add new transaction
+      const newTransaction: Transaction = {
+        ...transaction,
+        id: transactions.length + 1,
+        date: new Date().toISOString().split('T')[0],
+      };
+      setTransactions([newTransaction, ...transactions]);
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
+    }
     setEditingTransaction(null);
   };
 
@@ -95,67 +110,48 @@ const Index = () => {
 
   const handleSaveEdit = (newValue: number) => {
     if (editingCard === 'income') {
-      // Add a new income transaction
-      const newTransaction: Transaction = {
-        id: transactions.length + 1,
-        description: "Manual Income Adjustment",
-        amount: newValue - totalIncome,
-        type: "income",
-        category: "Income",
-        date: new Date().toISOString().split('T')[0],
-      };
-      setTransactions([newTransaction, ...transactions]);
-      toast({
-        title: "Success",
-        description: "Income updated successfully",
-      });
+      // Add a new income transaction to reflect the manual adjustment
+      const difference = newValue - totalIncome;
+      if (difference !== 0) {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
+          description: "Manual Income Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Adjustment",
+          date: new Date().toISOString().split('T')[0],
+        };
+        setTransactions([newTransaction, ...transactions]);
+      }
     } else if (editingCard === 'savings') {
-      // Add a new savings transaction
-      const newTransaction: Transaction = {
-        id: transactions.length + 1,
-        description: "Manual Savings Adjustment",
-        amount: newValue - savings,
-        type: newValue > savings ? "income" : "expense",
-        category: "Savings",
-        date: new Date().toISOString().split('T')[0],
-      };
-      setTransactions([newTransaction, ...transactions]);
-      toast({
-        title: "Success",
-        description: "Savings updated successfully",
-      });
+      // Add a new transaction to adjust savings
+      const difference = newValue - savings;
+      if (difference !== 0) {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
+          description: "Manual Savings Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Savings Adjustment",
+          date: new Date().toISOString().split('T')[0],
+        };
+        setTransactions([newTransaction, ...transactions]);
+      }
     }
-    setEditingCard(null);
-  };
-
-  const handleCardDragStart = (e: React.DragEvent, cardId: string) => {
-    e.dataTransfer.setData('cardId', cardId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleCardDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleCardDrop = (e: React.DragEvent, dropCardId: string) => {
-    e.preventDefault();
-    const dragCardId = e.dataTransfer.getData('cardId');
     
-    if (dragCardId !== dropCardId) {
-      const dragIndex = dashboardCards.findIndex(card => card.id === dragCardId);
-      const dropIndex = dashboardCards.findIndex(card => card.id === dropCardId);
-      
-      const newCards = [...dashboardCards];
-      const [removed] = newCards.splice(dragIndex, 1);
-      newCards.splice(dropIndex, 0, removed);
-      
-      setDashboardCards(newCards);
-      toast({
-        title: "Success",
-        description: "Dashboard card order updated",
-      });
-    }
+    // Update dashboard cards
+    setDashboardCards(cards =>
+      cards.map(card => ({
+        ...card,
+        value: card.id === editingCard ? newValue : card.value
+      }))
+    );
+
+    setEditingCard(null);
+    toast({
+      title: "Success",
+      description: "Value updated successfully",
+    });
   };
 
   // Early return for unauthenticated users
