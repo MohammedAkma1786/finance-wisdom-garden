@@ -29,7 +29,7 @@ const Index = () => {
         const querySnapshot = await getDocs(q);
         const loadedTransactions: Transaction[] = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Ensure type is correctly cast to "income" | "expense"
+          // Ensure type is correctly cast as "income" | "expense"
           const type = data.type === "income" ? "income" : "expense";
           
           return {
@@ -134,7 +134,7 @@ const Index = () => {
     if (!user?.id || !db) return;
 
     try {
-      // Ensure all transactions are serializable
+      // Ensure all transactions have the correct type
       const serializedTransactions = newTransactions.map(t => ({
         ...t,
         amount: Number(t.amount),
