@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import YearlyPlanner from "./pages/YearlyPlanner";
+import MonthPlanner from "./pages/MonthPlanner";
 import Subscriptions from "./pages/Subscriptions";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/planner" element={<YearlyPlanner />} />
+            <Route path="/planner/:monthId" element={<MonthPlanner />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
           </Routes>
         </BrowserRouter>
