@@ -15,9 +15,16 @@ const Index = () => {
     return <div>Loading...</div>;
   }
 
+  // Only pass serializable data to DashboardContainer
+  const serializedUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name || 'User'
+  };
+
   return (
     <DashboardContainer
-      user={user}
+      user={serializedUser}
       transactions={transactions}
       onLogout={logout}
     />
