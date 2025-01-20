@@ -18,8 +18,7 @@ const Index = () => {
   // Only pass serializable data to DashboardContainer
   const serializedUser = {
     id: user.id,
-    email: user.email,
-    name: user.name || 'User'
+    name: user.name
   };
 
   return (

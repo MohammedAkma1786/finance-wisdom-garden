@@ -11,7 +11,10 @@ import { useState } from "react";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 
 interface DashboardContainerProps {
-  user: { id: string; name: string };
+  user: {
+    id: string;
+    name: string | null;
+  };
   transactions: Transaction[];
   onLogout: () => void;
 }
@@ -52,7 +55,7 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        queryClient.setQueryData(['transactions', user.id], (prev: Transaction[]) => [
+        queryClient.setQueryData(['transactions', user.id], (prev: Transaction[] = []) => [
           ...prev,
           {
             id: Date.now(),
@@ -72,13 +75,13 @@ export function DashboardContainer({ user, transactions, onLogout }: DashboardCo
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.name} onLogout={onLogout} />
+        <DashboardHeader userName={user.name || 'User'} onLogout={onLogout} />
         <DashboardOverview transactions={transactions} />
         <DashboardStats
           totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           savings={savings}
-          onCardEdit={(cardId, value) => setEditingCard(cardId)}
+          onCardEdit={(cardId) => setEditingCard(cardId)}
           dashboardCards={dashboardCards}
         />
 

@@ -16,7 +16,7 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
   const { addTransaction } = useTransactions();
 
   const handleTransactionSubmit = (transaction: Omit<Transaction, 'id'>) => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const newTransaction = {
       ...transaction,
