@@ -101,7 +101,10 @@ const Index = () => {
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
           <div className="space-x-4">
             <Link to="/planner">
-              <Button variant="outline">Yearly Expense Planner</Button>
+              <Button variant="outline">Expense Planner</Button>
+            </Link>
+            <Link to="/transactions">
+              <Button variant="outline">Transactions</Button>
             </Link>
             <Link to="/subscriptions">
               <Button variant="outline">Subscription Tracker</Button>

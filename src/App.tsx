@@ -9,6 +9,7 @@ import YearlyPlanner from "./pages/YearlyPlanner";
 import MonthPlanner from "./pages/MonthPlanner";
 import Subscriptions from "./pages/Subscriptions";
 import CurrentPlans from "./pages/CurrentPlans";
+import Transactions from "./pages/Transactions";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/planner/:monthId" element={<MonthPlanner />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/current-plans" element={<CurrentPlans />} />
+            <Route path="/transactions" element={<Transactions />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
