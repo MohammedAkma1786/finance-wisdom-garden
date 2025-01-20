@@ -6,6 +6,8 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { TransactionManager } from "@/components/TransactionManager";
 import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 interface Transaction {
   id: number;
@@ -86,7 +88,6 @@ const Index = () => {
     setEditingCard(null);
   };
 
-  // Early return for unauthenticated users
   if (!user) {
     return <Auth />;
   }
@@ -95,6 +96,13 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
         <DashboardHeader userName={user.name} onLogout={logout} />
+
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Financial Dashboard</h2>
+          <Link to="/planner">
+            <Button variant="outline">Yearly Expense Planner</Button>
+          </Link>
+        </div>
 
         <DashboardStats
           totalIncome={totalIncome}
