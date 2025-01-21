@@ -42,10 +42,10 @@ const Index = () => {
           id: Number(doc.id),
           description: String(doc.data().description || ''),
           amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
+          type: (doc.data().type === 'income' ? 'income' : 'expense') as "income" | "expense",
           category: String(doc.data().category || ''),
           date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        }));
+        } satisfies Transaction));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -95,7 +95,7 @@ const Index = () => {
       const transactionData = {
         description: String(newTransaction.description),
         amount: String(newTransaction.amount),
-        type: String(newTransaction.type),
+        type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -107,10 +107,10 @@ const Index = () => {
         id: Number(docRef.id),
         description: transactionData.description,
         amount: Number(transactionData.amount),
-        type: transactionData.type === 'income' ? 'income' : 'expense',
+        type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      } as Transaction;
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -135,7 +135,7 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const newTransaction = {
+        const newTransaction: Omit<Transaction, 'id'> & { userId: string } = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
           type: difference > 0 ? "income" : "expense",
