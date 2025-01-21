@@ -9,9 +9,9 @@ import {
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 
 interface User {
-  id: string;
+  uid: string;
   email: string | null;
-  name: string | null;
+  displayName: string | null;
 }
 
 interface AuthContextType {
@@ -32,9 +32,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
-          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           email: firebaseUser.email,
-          name: firebaseUser.displayName
+          displayName: firebaseUser.displayName
         });
       } else {
         setUser(null);
