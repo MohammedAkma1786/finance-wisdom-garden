@@ -28,42 +28,42 @@ const Index = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query for fetching transactions with serializable data
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
-      if (!user?.id || !db) return [];
-      
-      const q = query(
-        collection(db, 'transactions'), 
-        where('userId', '==', user.id)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Ensure all data is serializable
-        return {
-          id: Number(doc.id),
-          description: String(data.description || ''),
-          amount: Number(data.amount || 0),
-          type: data.type as "income" | "expense",
-          category: String(data.category || ''),
-          date: String(data.date || new Date().toISOString().split('T')[0])
-        } satisfies Transaction;
-      });
+      try {
+        if (!user?.id || !db) return [];
+        
+        const transactionsRef = collection(db, 'transactions');
+        const q = query(transactionsRef, where('userId', '==', user.id));
+        const snapshot = await getDocs(q);
+        
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: parseInt(doc.id) || 0,
+            description: String(data.description || ''),
+            amount: parseFloat(data.amount) || 0,
+            type: (data.type === 'income' ? 'income' : 'expense') as Transaction['type'],
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
-    enabled: Boolean(user?.id) && Boolean(db)
+    enabled: Boolean(user?.id)
   });
 
-  // Calculate totals using primitive values
   const totalIncome = transactions.reduce(
-    (sum, t) => t.type === "income" ? sum + Number(t.amount) : sum, 
+    (sum, t) => t.type === "income" ? sum + t.amount : sum, 
     0
   );
   
   const totalExpenses = transactions.reduce(
-    (sum, t) => t.type === "expense" ? sum + Number(t.amount) : sum, 
+    (sum, t) => t.type === "expense" ? sum + t.amount : sum, 
     0
   );
   
@@ -93,12 +93,11 @@ const Index = () => {
     }
   ];
 
-  // Mutation for adding transactions with serializable data
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
       const serializedTransaction = {
         description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
+        amount: parseFloat(String(newTransaction.amount)),
         type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
@@ -106,7 +105,10 @@ const Index = () => {
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), serializedTransaction);
-      return { ...serializedTransaction, id: Number(docRef.id) } as Transaction;
+      return {
+        ...serializedTransaction,
+        id: parseInt(docRef.id)
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -129,7 +131,7 @@ const Index = () => {
     if (!user?.id) return;
     
     if (cardId === 'income') {
-      const difference = Number(newValue) - totalIncome;
+      const difference = parseFloat(String(newValue)) - totalIncome;
       if (difference !== 0) {
         const newTransaction = {
           description: "Manual Income Adjustment",
