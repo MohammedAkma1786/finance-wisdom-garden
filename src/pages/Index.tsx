@@ -33,16 +33,18 @@ const Index = () => {
         
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
-          const transactionType = data.type === 'income' ? 'income' as const : 'expense' as const;
           
-          return {
-            id: parseInt(doc.id, 10),
+          // Create a plain serializable object
+          const transaction: Transaction = {
+            id: Number(doc.id),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
-            type: transactionType,
+            type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
+          };
+          
+          return transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -90,12 +92,11 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const transactionType = newTransaction.type === 'income' ? 'income' as const : 'expense' as const;
-      
+      // Create a plain serializable object for the new transaction
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: transactionType,
+        type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -104,13 +105,13 @@ const Index = () => {
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: parseInt(docRef.id, 10),
+        id: Number(docRef.id),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      } satisfies Transaction;
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -135,11 +136,11 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const transactionType = difference > 0 ? 'income' as const : 'expense' as const;
+        const type = difference > 0 ? 'income' : 'expense';
         const newTransaction = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: transactionType,
+          type,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
           userId: user.uid
