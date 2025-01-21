@@ -31,21 +31,14 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          const type = data.type === 'income' ? 'income' as const : 'expense' as const;
-          
-          const transaction: Transaction = {
-            id: Number(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type,
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          };
-          
-          return transaction;
-        });
+        return querySnapshot.docs.map(doc => ({
+          id: Number(doc.id),
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' as const : 'expense' as const,
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -92,12 +85,10 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const type = newTransaction.type === 'income' ? 'income' as const : 'expense' as const;
-      
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type,
+        type: newTransaction.type === 'income' ? 'income' as const : 'expense' as const,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -137,17 +128,16 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const type = difference > 0 ? 'income' as const : 'expense' as const;
-        const newTransaction = {
+        const transactionData = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type,
+          type: difference > 0 ? 'income' as const : 'expense' as const,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
           userId: user.uid
         };
 
-        addTransactionMutation.mutate(newTransaction);
+        addTransactionMutation.mutate(transactionData);
       }
     }
     setEditingCard(null);
