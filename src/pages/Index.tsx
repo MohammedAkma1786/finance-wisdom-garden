@@ -22,15 +22,6 @@ interface Transaction {
   date: string;
 }
 
-interface FirestoreTransaction {
-  description: string;
-  amount: string;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-  userId: string;
-}
-
 const Index = () => {
   const { user, logout } = useAuth();
   const [editingCard, setEditingCard] = useState<string | null>(null);
@@ -44,19 +35,19 @@ const Index = () => {
       
       try {
         const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', String(user.id)));
+        const q = query(transactionsRef, where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
           return {
-            id: parseInt(doc.id),
+            id: Number(doc.id),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          } as Transaction;
+          };
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -67,12 +58,12 @@ const Index = () => {
   });
 
   const totalIncome = transactions.reduce(
-    (sum, t) => t.type === "income" ? sum + Number(t.amount) : sum, 
+    (sum, t) => t.type === "income" ? sum + t.amount : sum, 
     0
   );
   
   const totalExpenses = transactions.reduce(
-    (sum, t) => t.type === "expense" ? sum + Number(t.amount) : sum, 
+    (sum, t) => t.type === "expense" ? sum + t.amount : sum, 
     0
   );
   
@@ -104,7 +95,7 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const firestoreTransaction: FirestoreTransaction = {
+      const transactionData = {
         description: String(newTransaction.description),
         amount: String(newTransaction.amount),
         type: newTransaction.type,
@@ -113,16 +104,16 @@ const Index = () => {
         userId: String(newTransaction.userId)
       };
       
-      const docRef = await addDoc(collection(db, 'transactions'), firestoreTransaction);
+      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: parseInt(docRef.id),
-        description: firestoreTransaction.description,
-        amount: Number(firestoreTransaction.amount),
-        type: firestoreTransaction.type,
-        category: firestoreTransaction.category,
-        date: firestoreTransaction.date
-      } as Transaction;
+        id: Number(docRef.id),
+        description: transactionData.description,
+        amount: Number(transactionData.amount),
+        type: transactionData.type,
+        category: transactionData.category,
+        date: transactionData.date
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -141,11 +132,11 @@ const Index = () => {
     }
   });
 
-  const handleCardEdit = async (cardId: string, newValue: number) => {
+  const handleCardEdit = (cardId: string, newValue: number) => {
     if (!user?.id) return;
     
     if (cardId === 'income') {
-      const difference = Number(newValue) - totalIncome;
+      const difference = newValue - totalIncome;
       if (difference !== 0) {
         const newTransaction = {
           description: "Manual Income Adjustment",
