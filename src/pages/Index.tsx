@@ -35,14 +35,14 @@ const Index = () => {
       
       try {
         const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', String(user.uid)));
+        const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(doc => ({
           id: Number(doc.id),
           description: String(doc.data().description || ''),
           amount: Number(doc.data().amount || 0),
-          type: (doc.data().type === 'income' ? 'income' : 'expense') as "income" | "expense",
+          type: (doc.data().type === 'income' ? 'income' : 'expense') as const,
           category: String(doc.data().category || ''),
           date: String(doc.data().date || new Date().toISOString().split('T')[0])
         } satisfies Transaction));
@@ -88,13 +88,13 @@ const Index = () => {
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
       className: "border-l-primary"
     }
-  ];
+  ] as const;
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
       const transactionData = {
         description: String(newTransaction.description),
-        amount: String(newTransaction.amount),
+        amount: Number(newTransaction.amount),
         type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
@@ -141,7 +141,7 @@ const Index = () => {
           type: difference > 0 ? "income" : "expense",
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
-          userId: String(user.uid)
+          userId: user.uid
         };
 
         addTransactionMutation.mutate(newTransaction);
