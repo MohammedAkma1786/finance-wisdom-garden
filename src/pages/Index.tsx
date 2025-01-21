@@ -32,15 +32,16 @@ const Index = () => {
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(doc => {
-          const data = doc.data();
+          const docData = doc.data();
+          // Create a new plain object with primitive values
           return {
-            id: parseInt(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } as Transaction;
+            id: parseInt(doc.id, 10),
+            description: String(docData.description || ''),
+            amount: Number(docData.amount || 0),
+            type: docData.type === 'income' ? 'income' : 'expense',
+            category: String(docData.category || ''),
+            date: String(docData.date || new Date().toISOString().split('T')[0])
+          };
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -88,6 +89,7 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
+      // Create a new plain object with primitive values
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
@@ -100,13 +102,13 @@ const Index = () => {
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: Number(docRef.id),
+        id: parseInt(docRef.id, 10),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      } as Transaction;
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
