@@ -35,22 +35,17 @@ const Index = () => {
       
       try {
         const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', user.uid));
+        const q = query(transactionsRef, where('userId', '==', String(user.uid)));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          const type = data.type === 'income' ? 'income' as const : 'expense' as const;
-          
-          return {
-            id: Number(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type,
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
-        });
+        return querySnapshot.docs.map(doc => ({
+          id: Number(doc.id),
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: (doc.data().type === 'income' ? 'income' : 'expense') as Transaction['type'],
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -100,7 +95,7 @@ const Index = () => {
       const transactionData = {
         description: String(newTransaction.description),
         amount: String(newTransaction.amount),
-        type: newTransaction.type,
+        type: String(newTransaction.type),
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -108,16 +103,14 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const transaction: Transaction = {
+      return {
         id: Number(docRef.id),
         description: transactionData.description,
         amount: Number(transactionData.amount),
-        type: transactionData.type,
+        type: transactionData.type as Transaction['type'],
         category: transactionData.category,
         date: transactionData.date
-      };
-
-      return transaction;
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
