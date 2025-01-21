@@ -29,13 +29,13 @@ const Index = () => {
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions', user?.id],
+    queryKey: ['transactions', user?.uid],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.uid) return [];
       
       try {
         const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', user.id));
+        const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(doc => {
@@ -56,7 +56,7 @@ const Index = () => {
         return [];
       }
     },
-    enabled: Boolean(user?.id)
+    enabled: Boolean(user?.uid)
   });
 
   const totalIncome = transactions.reduce(
@@ -137,7 +137,7 @@ const Index = () => {
   });
 
   const handleCardEdit = (cardId: string, newValue: number) => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
@@ -148,7 +148,7 @@ const Index = () => {
           type: difference > 0 ? "income" as const : "expense" as const,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
-          userId: user.id
+          userId: String(user.uid)
         };
 
         addTransactionMutation.mutate(newTransaction);
@@ -168,7 +168,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={String(user.name || '')} onLogout={logout} />
+        <DashboardHeader userName={String(user.displayName || '')} onLogout={logout} />
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
@@ -200,7 +200,7 @@ const Index = () => {
         <TransactionManager 
           transactions={transactions}
           setTransactions={(newTransactions) => {
-            queryClient.setQueryData(['transactions', user.id], newTransactions);
+            queryClient.setQueryData(['transactions', user.uid], newTransactions);
           }}
         />
       </div>
