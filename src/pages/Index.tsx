@@ -33,15 +33,17 @@ const Index = () => {
         
         return querySnapshot.docs.map(doc => {
           const docData = doc.data();
-          // Create a new plain object with primitive values
+          // Ensure type is strictly "income" or "expense"
+          const transactionType = docData.type === 'income' ? 'income' as const : 'expense' as const;
+          
           return {
             id: parseInt(doc.id, 10),
             description: String(docData.description || ''),
             amount: Number(docData.amount || 0),
-            type: docData.type === 'income' ? 'income' : 'expense',
+            type: transactionType,
             category: String(docData.category || ''),
             date: String(docData.date || new Date().toISOString().split('T')[0])
-          };
+          } satisfies Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -89,11 +91,12 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      // Create a new plain object with primitive values
+      const transactionType = newTransaction.type === 'income' ? 'income' as const : 'expense' as const;
+      
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type === 'income' ? 'income' : 'expense',
+        type: transactionType,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -108,7 +111,7 @@ const Index = () => {
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      };
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
