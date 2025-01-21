@@ -31,14 +31,17 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => ({
-          id: Number(doc.id),
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        } as Transaction));
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: parseInt(doc.id),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } as Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -85,7 +88,6 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      // Create a plain serializable object
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
