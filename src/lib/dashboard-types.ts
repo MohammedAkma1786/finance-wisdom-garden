@@ -9,9 +9,6 @@ export interface DashboardCardData {
 }
 
 export interface DashboardStatsProps {
-  totalIncome: number;
-  totalExpenses: number;
-  savings: number;
   onCardEdit: (cardId: string, value: number) => void;
   dashboardCards: DashboardCardData[];
 }
