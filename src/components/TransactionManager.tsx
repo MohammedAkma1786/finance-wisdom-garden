@@ -3,34 +3,25 @@ import { Card } from "@/components/ui/card";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionList } from "@/components/TransactionList";
 import { useToast } from "@/hooks/use-toast";
-
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-}
+import type { Transaction } from "@/lib/types";
 
 interface TransactionManagerProps {
   transactions: Transaction[];
   setTransactions: (transactions: Transaction[]) => void;
 }
 
-export function TransactionManager({ transactions, setTransactions }: TransactionManagerProps) {
+export function TransactionManager({ 
+  transactions, 
+  setTransactions 
+}: TransactionManagerProps) {
   const { toast } = useToast();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
       const updatedTransactions = transactions.map((t) =>
         t.id === editingTransaction.id
-          ? {
-              ...transaction,
-              id: editingTransaction.id,
-              date: editingTransaction.date
-            }
+          ? { ...transaction, id: editingTransaction.id }
           : t
       );
       setTransactions(updatedTransactions);
@@ -42,8 +33,7 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
     } else {
       const newTransaction: Transaction = {
         ...transaction,
-        id: transactions.length + 1,
-        date: new Date().toISOString().split('T')[0],
+        id: Date.now(),
       };
       setTransactions([newTransaction, ...transactions]);
       toast({
@@ -78,7 +68,6 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
         onSubmit={handleTransactionSubmit}
         editingTransaction={editingTransaction}
       />
-      
       <Card className="p-6">
         <h2 className="mb-4 text-lg font-semibold">Transactions</h2>
         <TransactionList 

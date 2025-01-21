@@ -13,6 +13,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
+import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -30,17 +31,14 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: Number(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
-        });
+        return querySnapshot.docs.map(doc => ({
+          id: Number(doc.id),
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -61,7 +59,7 @@ const Index = () => {
   
   const savings = totalIncome - totalExpenses;
 
-  const dashboardCards = [
+  const dashboardCards: DashboardCardData[] = [
     {
       id: "income",
       title: "Total Income",
@@ -87,25 +85,23 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const transactionData = {
+      const docRef = await addDoc(collection(db, 'transactions'), {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
         type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
-      };
-      
-      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
+      });
       
       return {
         id: Number(docRef.id),
-        description: transactionData.description,
-        amount: transactionData.amount,
-        type: transactionData.type,
-        category: transactionData.category,
-        date: transactionData.date
-      } satisfies Transaction;
+        description: newTransaction.description,
+        amount: newTransaction.amount,
+        type: newTransaction.type,
+        category: newTransaction.category,
+        date: newTransaction.date
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -130,10 +126,10 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const newTransaction: Omit<Transaction, 'id'> & { userId: string } = {
+        const newTransaction = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: difference > 0 ? "income" : "expense",
+          type: difference > 0 ? "income" as const : "expense" as const,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
           userId: user.uid

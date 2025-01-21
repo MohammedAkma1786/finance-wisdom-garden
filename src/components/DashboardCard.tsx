@@ -2,18 +2,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReactNode } from "react";
 
 interface DashboardCardProps {
   title: string;
   value: string;
   className?: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   onEdit?: () => void;
 }
 
-export function DashboardCard({ title, value, className, icon, onEdit }: DashboardCardProps) {
+export function DashboardCard({ 
+  title, 
+  value, 
+  className, 
+  icon, 
+  onEdit 
+}: DashboardCardProps) {
   return (
-    <Card className={cn("relative group h-full hover:shadow-lg transition-all duration-300 border-l-[6px]", className)}>
+    <Card className={cn(
+      "relative group h-full hover:shadow-lg transition-all duration-300 border-l-[6px]", 
+      className
+    )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
