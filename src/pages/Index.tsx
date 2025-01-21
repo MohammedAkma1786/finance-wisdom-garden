@@ -42,7 +42,7 @@ const Index = () => {
           id: Number(doc.id),
           description: String(doc.data().description || ''),
           amount: Number(doc.data().amount || 0),
-          type: (doc.data().type === 'income' ? 'income' : 'expense') as Transaction['type'],
+          type: doc.data().type === 'income' ? 'income' : 'expense',
           category: String(doc.data().category || ''),
           date: String(doc.data().date || new Date().toISOString().split('T')[0])
         }));
@@ -107,10 +107,10 @@ const Index = () => {
         id: Number(docRef.id),
         description: transactionData.description,
         amount: Number(transactionData.amount),
-        type: transactionData.type as Transaction['type'],
+        type: transactionData.type === 'income' ? 'income' : 'expense',
         category: transactionData.category,
         date: transactionData.date
-      } satisfies Transaction;
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -138,7 +138,7 @@ const Index = () => {
         const newTransaction = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: difference > 0 ? "income" as const : "expense" as const,
+          type: difference > 0 ? "income" : "expense",
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
           userId: String(user.uid)
@@ -161,7 +161,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={String(user.displayName || '')} onLogout={logout} />
+        <DashboardHeader userName={user.displayName || ''} onLogout={logout} />
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>

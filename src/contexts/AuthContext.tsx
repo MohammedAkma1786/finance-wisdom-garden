@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  User as FirebaseUser
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 
@@ -29,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) return;
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
@@ -59,7 +60,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!auth) return false;
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: name });
+      }
       return true;
     } catch (error) {
       console.error('Registration error:', error);

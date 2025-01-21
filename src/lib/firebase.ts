@@ -13,8 +13,8 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase only if it hasn't been initialized already
-let app: FirebaseApp;
+let app: FirebaseApp | undefined;
+
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
 } else {
