@@ -174,9 +174,6 @@ const Index = () => {
         <DashboardStats
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
-          totalIncome={totalIncome}
-          totalExpenses={totalExpenses}
-          savings={savings}
         />
 
         <div className="flex justify-between items-center mb-4">
