@@ -33,17 +33,14 @@ const Index = () => {
         
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Validate the type field
-          const type = data.type === 'income' ? 'income' as const : 'expense' as const;
-          
           return {
             id: Number(doc.id),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
-            type,
+            type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
+          } as Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -91,14 +88,16 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const docRef = await addDoc(collection(db, 'transactions'), {
+      const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
         type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
-      });
+      };
+      
+      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
         id: Number(docRef.id),
@@ -107,7 +106,7 @@ const Index = () => {
         type: newTransaction.type,
         category: newTransaction.category,
         date: newTransaction.date
-      } satisfies Transaction;
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -175,6 +174,9 @@ const Index = () => {
         <DashboardStats
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          savings={savings}
         />
 
         <div className="flex justify-between items-center mb-4">
