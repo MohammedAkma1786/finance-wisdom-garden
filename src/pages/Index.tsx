@@ -22,6 +22,15 @@ interface Transaction {
   date: string;
 }
 
+interface SerializableTransaction {
+  description: string;
+  amount: string;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+  userId: string;
+}
+
 const Index = () => {
   const { user, logout } = useAuth();
   const [editingCard, setEditingCard] = useState<string | null>(null);
@@ -31,24 +40,21 @@ const Index = () => {
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       try {
-        if (!user?.id || !db) return [];
-        
         const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', user.id));
-        const snapshot = await getDocs(q);
+        const q = query(transactionsRef, where('userId', '==', String(user.id)));
+        const querySnapshot = await getDocs(q);
         
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: parseInt(doc.id) || 0,
-            description: String(data.description || ''),
-            amount: parseFloat(data.amount) || 0,
-            type: (data.type === 'income' ? 'income' : 'expense') as Transaction['type'],
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          };
-        });
+        return querySnapshot.docs.map(doc => ({
+          id: parseInt(doc.id) || 0,
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        } as Transaction));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -58,12 +64,12 @@ const Index = () => {
   });
 
   const totalIncome = transactions.reduce(
-    (sum, t) => t.type === "income" ? sum + t.amount : sum, 
+    (sum, t) => t.type === "income" ? sum + Number(t.amount) : sum, 
     0
   );
   
   const totalExpenses = transactions.reduce(
-    (sum, t) => t.type === "expense" ? sum + t.amount : sum, 
+    (sum, t) => t.type === "expense" ? sum + Number(t.amount) : sum, 
     0
   );
   
@@ -95,19 +101,21 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      const serializedTransaction = {
+      const serializableTransaction: SerializableTransaction = {
         description: String(newTransaction.description),
-        amount: parseFloat(String(newTransaction.amount)),
+        amount: String(newTransaction.amount),
         type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
       };
       
-      const docRef = await addDoc(collection(db, 'transactions'), serializedTransaction);
+      const docRef = await addDoc(collection(db, 'transactions'), serializableTransaction);
+      
       return {
-        ...serializedTransaction,
-        id: parseInt(docRef.id)
+        ...newTransaction,
+        id: parseInt(docRef.id) || 0,
+        amount: Number(serializableTransaction.amount)
       } as Transaction;
     },
     onSuccess: () => {
@@ -131,7 +139,7 @@ const Index = () => {
     if (!user?.id) return;
     
     if (cardId === 'income') {
-      const difference = parseFloat(String(newValue)) - totalIncome;
+      const difference = Number(newValue) - totalIncome;
       if (difference !== 0) {
         const newTransaction = {
           description: "Manual Income Adjustment",
@@ -139,7 +147,7 @@ const Index = () => {
           type: difference > 0 ? "income" as const : "expense" as const,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
-          userId: user.id
+          userId: String(user.id)
         };
 
         addTransactionMutation.mutate(newTransaction);
@@ -159,7 +167,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.name || ''} onLogout={logout} />
+        <DashboardHeader userName={String(user.name || '')} onLogout={logout} />
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
