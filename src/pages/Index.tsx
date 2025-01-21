@@ -32,17 +32,16 @@ const Index = () => {
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(doc => {
-          const docData = doc.data();
-          // Ensure type is strictly "income" or "expense"
-          const transactionType = docData.type === 'income' ? 'income' as const : 'expense' as const;
+          const data = doc.data();
+          const transactionType = data.type === 'income' ? 'income' as const : 'expense' as const;
           
           return {
             id: parseInt(doc.id, 10),
-            description: String(docData.description || ''),
-            amount: Number(docData.amount || 0),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
             type: transactionType,
-            category: String(docData.category || ''),
-            date: String(docData.date || new Date().toISOString().split('T')[0])
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
           } satisfies Transaction;
         });
       } catch (error) {
@@ -136,10 +135,11 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
+        const transactionType = difference > 0 ? 'income' as const : 'expense' as const;
         const newTransaction = {
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: difference > 0 ? 'income' as const : 'expense' as const,
+          type: transactionType,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
           userId: user.uid
