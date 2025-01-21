@@ -40,14 +40,16 @@ const Index = () => {
         
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
+          const type = data.type === 'income' ? 'income' as const : 'expense' as const;
+          
           return {
             id: Number(doc.id),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
-            type: data.type === 'income' ? 'income' : 'expense',
+            type,
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          };
+          } satisfies Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -106,7 +108,7 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      return {
+      const transaction: Transaction = {
         id: Number(docRef.id),
         description: transactionData.description,
         amount: Number(transactionData.amount),
@@ -114,6 +116,8 @@ const Index = () => {
         category: transactionData.category,
         date: transactionData.date
       };
+
+      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -144,7 +148,7 @@ const Index = () => {
           type: difference > 0 ? "income" as const : "expense" as const,
           category: "Adjustment",
           date: new Date().toISOString().split('T')[0],
-          userId: String(user.id)
+          userId: user.id
         };
 
         addTransactionMutation.mutate(newTransaction);
