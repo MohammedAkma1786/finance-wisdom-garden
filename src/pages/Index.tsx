@@ -31,14 +31,20 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => ({
-          id: Number(doc.id),
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        }));
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          // Validate the type field
+          const type = data.type === 'income' ? 'income' as const : 'expense' as const;
+          
+          return {
+            id: Number(doc.id),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type,
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } satisfies Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -101,7 +107,7 @@ const Index = () => {
         type: newTransaction.type,
         category: newTransaction.category,
         date: newTransaction.date
-      };
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -167,9 +173,6 @@ const Index = () => {
         </div>
 
         <DashboardStats
-          totalIncome={totalIncome}
-          totalExpenses={totalExpenses}
-          savings={savings}
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
         />
