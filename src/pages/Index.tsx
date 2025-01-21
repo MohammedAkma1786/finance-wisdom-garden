@@ -38,14 +38,17 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => ({
-          id: Number(doc.id),
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: (doc.data().type === 'income' ? 'income' : 'expense') as const,
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        } satisfies Transaction));
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: Number(doc.id),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } satisfies Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -88,7 +91,7 @@ const Index = () => {
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
       className: "border-l-primary"
     }
-  ] as const;
+  ];
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
@@ -106,7 +109,7 @@ const Index = () => {
       return {
         id: Number(docRef.id),
         description: transactionData.description,
-        amount: Number(transactionData.amount),
+        amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
