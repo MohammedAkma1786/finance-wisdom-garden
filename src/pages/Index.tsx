@@ -31,18 +31,20 @@ const Index = () => {
         const q = query(transactionsRef, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         
-        // Convert Firebase documents to plain serializable objects
-        return querySnapshot.docs.map((doc): Transaction => {
+        const results: Transaction[] = [];
+        querySnapshot.forEach((doc) => {
           const data = doc.data();
-          return {
+          results.push({
             id: parseInt(doc.id, 10) || Date.now(),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          };
+          });
         });
+        
+        return results;
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -89,11 +91,10 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      // Create a plain serializable object with explicit type conversion
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type === 'income' ? 'income' as const : 'expense' as const,
+        type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -101,14 +102,16 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      return {
+      const result: Transaction = {
         id: parseInt(docRef.id, 10) || Date.now(),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      } as Transaction;
+      };
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
