@@ -8,7 +8,7 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -42,11 +42,16 @@ const Index = () => {
       const q = query(
         transactionsRef, 
         where('userId', '==', user.uid),
-        orderBy('date', 'desc')
+        orderBy('createdAt', 'desc')
       );
       
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(transformFirebaseDoc);
+      try {
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(transformFirebaseDoc);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
     enabled: Boolean(user?.uid)
   });
@@ -60,7 +65,7 @@ const Index = () => {
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId),
-        createdAt: new Date().toISOString()
+        createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
