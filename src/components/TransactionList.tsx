@@ -7,7 +7,7 @@ import type { Transaction } from "@/lib/types";
 interface TransactionListProps {
   transactions: Transaction[];
   onEdit: (transaction: Transaction) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onReorder: (startIndex: number, endIndex: number) => void;
 }
 
