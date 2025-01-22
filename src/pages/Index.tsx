@@ -17,26 +17,13 @@ import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
-  // Return a default transaction if data is null
-  if (!data) {
-    return {
-      id: doc.id,
-      description: '',
-      amount: 0,
-      type: 'expense',
-      category: '',
-      date: new Date().toISOString().split('T')[0]
-    };
-  }
-
-  // Ensure all fields are properly serialized
   return {
     id: doc.id,
-    description: String(data.description || ''),
-    amount: Number(data.amount || 0),
-    type: data.type === 'income' ? 'income' : 'expense',
-    category: String(data.category || ''),
-    date: String(data.date || new Date().toISOString().split('T')[0])
+    description: data?.description || '',
+    amount: Number(data?.amount || 0),
+    type: data?.type === 'income' ? 'income' : 'expense',
+    category: data?.category || '',
+    date: data?.date || new Date().toISOString().split('T')[0]
   };
 };
 
@@ -60,27 +47,22 @@ const Index = () => {
       
       try {
         const querySnapshot = await getDocs(q);
-        // Map documents to transactions, ensuring serializable data
-        return querySnapshot.docs.map(doc => ({
-          ...transformFirebaseDoc(doc),
-          createdAt: doc.data().createdAt?.toDate?.() || new Date()
-        }));
+        return querySnapshot.docs.map(doc => transformFirebaseDoc(doc));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
       }
     },
     enabled: Boolean(user?.uid),
-    staleTime: 5000,
-    retry: 1,
-    refetchOnWindowFocus: false
+    staleTime: 30000, // Cache data for 30 seconds
+    refetchOnWindowFocus: false, // Prevent multiple stream locks
+    retry: 1
   });
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
-      // Create a plain object with serializable data
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
