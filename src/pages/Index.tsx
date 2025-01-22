@@ -8,22 +8,22 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where, orderBy, Timestamp, DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
 import type { DashboardCardData } from "@/lib/dashboard-types";
 
-const transformFirebaseDoc = (doc: any): Transaction => {
+const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
   return {
     id: doc.id,
-    description: String(data.description || ''),
-    amount: Number(data.amount || 0),
+    description: data.description || '',
+    amount: Number(data.amount) || 0,
     type: data.type === 'income' ? 'income' : 'expense',
-    category: String(data.category || ''),
-    date: String(data.date || new Date().toISOString().split('T')[0])
+    category: data.category || '',
+    date: data.date || new Date().toISOString().split('T')[0]
   };
 };
 
@@ -50,7 +50,7 @@ const Index = () => {
         return snapshot.docs.map(transformFirebaseDoc);
       } catch (error) {
         console.error('Error fetching transactions:', error);
-        return [];
+        throw error; // Let React Query handle the error
       }
     },
     enabled: Boolean(user?.uid)
