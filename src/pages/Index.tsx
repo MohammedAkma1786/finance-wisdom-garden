@@ -17,7 +17,6 @@ import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
-  // Return a default transaction if data is null
   if (!data) {
     return {
       id: doc.id,
@@ -29,7 +28,6 @@ const transformFirebaseDoc = (doc: DocumentData): Transaction => {
     };
   }
 
-  // Ensure all fields are properly typed and serializable
   return {
     id: doc.id,
     description: String(data.description || ''),
@@ -58,17 +56,12 @@ const Index = () => {
         orderBy('createdAt', 'desc')
       );
       
-      try {
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(transformFirebaseDoc);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-        return [];
-      }
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(transformFirebaseDoc);
     },
     enabled: Boolean(user?.uid),
-    staleTime: 30000, // Cache data for 30 seconds
-    refetchOnWindowFocus: false, // Prevent multiple stream locks
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
     retry: 1
   });
 
@@ -76,7 +69,6 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
-      // Ensure data is serializable
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
