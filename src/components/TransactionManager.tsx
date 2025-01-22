@@ -33,7 +33,7 @@ export function TransactionManager({
     } else {
       const newTransaction: Transaction = {
         ...transaction,
-        id: Date.now().toString(), // Convert to string for Firebase compatibility
+        id: Date.now().toString(), // Ensure string ID for Firebase compatibility
       };
       setTransactions([newTransaction, ...transactions]);
       toast({
