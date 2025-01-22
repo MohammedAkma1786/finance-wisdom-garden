@@ -15,24 +15,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
 import type { DashboardCardData } from "@/lib/dashboard-types";
 
-// Utility functions for data transformation and validation
-const transformFirebaseDoc = (doc: any): Transaction | null => {
-  try {
-    const data = doc.data();
-    if (!data) return null;
-
-    return {
-      id: doc.id,
-      description: String(data.description || ''),
-      amount: Number(data.amount || 0),
-      type: data.type === 'income' ? 'income' : 'expense',
-      category: String(data.category || ''),
-      date: String(data.date || new Date().toISOString().split('T')[0])
-    };
-  } catch (error) {
-    console.error('Error transforming document:', error);
-    return null;
-  }
+const transformFirebaseDoc = (doc: any): Transaction => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    description: String(data.description || ''),
+    amount: Number(data.amount || 0),
+    type: data.type === 'income' ? 'income' : 'expense',
+    category: String(data.category || ''),
+    date: String(data.date || new Date().toISOString().split('T')[0])
+  };
 };
 
 const validateTransaction = (transaction: Partial<Transaction>): boolean => {
@@ -60,9 +52,7 @@ const Index = () => {
       const q = query(transactionsRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs
-        .map(transformFirebaseDoc)
-        .filter((t): t is Transaction => t !== null);
+      return querySnapshot.docs.map(transformFirebaseDoc);
     },
     enabled: Boolean(user?.uid)
   });

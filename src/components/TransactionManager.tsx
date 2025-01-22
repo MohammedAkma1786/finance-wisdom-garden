@@ -33,7 +33,7 @@ export function TransactionManager({
     } else {
       const newTransaction: Transaction = {
         ...transaction,
-        id: Date.now(),
+        id: Date.now().toString(), // Convert to string for Firebase compatibility
       };
       setTransactions([newTransaction, ...transactions]);
       toast({
@@ -47,7 +47,7 @@ export function TransactionManager({
     setEditingTransaction(transaction);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     setTransactions(transactions.filter((t) => t.id !== id));
     toast({
       title: "Success",
