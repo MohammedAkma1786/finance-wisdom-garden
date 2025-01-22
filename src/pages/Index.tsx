@@ -8,35 +8,12 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where, orderBy, Timestamp, DocumentData } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
 import type { DashboardCardData } from "@/lib/dashboard-types";
-
-const transformFirebaseDoc = (doc: DocumentData): Transaction => {
-  const data = doc.data();
-  if (!data) {
-    return {
-      id: doc.id,
-      description: '',
-      amount: 0,
-      type: 'expense',
-      category: '',
-      date: new Date().toISOString().split('T')[0]
-    };
-  }
-
-  return {
-    id: doc.id,
-    description: String(data.description || ''),
-    amount: Number(data.amount || 0),
-    type: data.type === 'income' ? 'income' : 'expense',
-    category: String(data.category || ''),
-    date: String(data.date || new Date().toISOString().split('T')[0])
-  };
-};
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -57,12 +34,18 @@ const Index = () => {
       );
       
       const querySnapshot = await getDocs(q);
-      const docs = querySnapshot.docs.map(transformFirebaseDoc);
-      return docs;
+      return querySnapshot.docs.map(doc => ({
+        id: String(doc.id),
+        description: String(doc.data().description || ''),
+        amount: Number(doc.data().amount || 0),
+        type: doc.data().type === 'income' ? 'income' : 'expense',
+        category: String(doc.data().category || ''),
+        date: String(doc.data().date || new Date().toISOString().split('T')[0])
+      }));
     },
     enabled: Boolean(user?.uid),
     staleTime: Infinity,
-    gcTime: 1000 * 60 * 5, // Changed from cacheTime to gcTime
+    gcTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     retry: 1
   });
@@ -91,8 +74,7 @@ const Index = () => {
         description: "Transaction added successfully"
       });
     },
-    onError: (error) => {
-      console.error('Error adding transaction:', error);
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to add transaction",
