@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,11 +15,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Initialize Analytics only if it's supported (not in SSR/development environment)
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && 
   firebaseConfig.authDomain && 
   firebaseConfig.projectId
 );
+
+export default app;
