@@ -17,6 +17,15 @@ import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
+  if (!data) return {
+    id: doc.id,
+    description: '',
+    amount: 0,
+    type: 'expense',
+    category: '',
+    date: new Date().toISOString().split('T')[0]
+  };
+
   return {
     id: doc.id,
     description: data.description || '',
@@ -46,30 +55,34 @@ const Index = () => {
       );
       
       try {
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(transformFirebaseDoc);
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => transformFirebaseDoc(doc));
       } catch (error) {
         console.error('Error fetching transactions:', error);
-        throw error; // Let React Query handle the error
+        return [];
       }
     },
-    enabled: Boolean(user?.uid)
+    enabled: Boolean(user?.uid),
+    staleTime: 5000, // Add staleTime to prevent multiple rapid fetches
+    retry: 1 // Limit retries to prevent stream locking
   });
 
   const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
+    mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
+      if (!user?.uid) throw new Error('User not authenticated');
+
       const transactionData = {
-        description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
+        description: newTransaction.description,
+        amount: newTransaction.amount,
         type: newTransaction.type,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(newTransaction.userId),
+        category: newTransaction.category,
+        date: newTransaction.date,
+        userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
-      return { id: docRef.id, ...transactionData } as Transaction;
+      return { id: docRef.id, ...newTransaction };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -116,16 +129,13 @@ const Index = () => {
     if (cardId === 'income') {
       const difference = newValue - totalIncome;
       if (difference !== 0) {
-        const transactionData = {
+        addTransactionMutation.mutate({
           description: "Manual Income Adjustment",
           amount: Math.abs(difference),
-          type: difference > 0 ? 'income' as const : 'expense' as const,
+          type: difference > 0 ? 'income' : 'expense',
           category: "Adjustment",
-          date: new Date().toISOString().split('T')[0],
-          userId: user.uid
-        };
-
-        addTransactionMutation.mutate(transactionData);
+          date: new Date().toISOString().split('T')[0]
+        });
       }
     }
     setEditingCard(null);
