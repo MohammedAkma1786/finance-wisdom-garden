@@ -8,7 +8,7 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where, DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,17 +29,20 @@ const Index = () => {
       try {
         const transactionsRef = collection(db, 'transactions');
         const q = query(transactionsRef, where('userId', '==', user.uid));
-        const snapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q);
         
-        // Create a plain serializable array of transactions
-        return snapshot.docs.map(doc => ({
-          id: Number(doc.id),
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' as const : 'expense' as const,
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        }));
+        // Convert Firebase documents to plain serializable objects
+        return querySnapshot.docs.map((doc): Transaction => {
+          const data = doc.data();
+          return {
+            id: parseInt(doc.id, 10) || Date.now(),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          };
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -86,7 +89,7 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      // Create a plain serializable object
+      // Create a plain serializable object with explicit type conversion
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
@@ -99,7 +102,7 @@ const Index = () => {
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: Number(docRef.id),
+        id: parseInt(docRef.id, 10) || Date.now(),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
