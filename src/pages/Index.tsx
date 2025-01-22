@@ -32,17 +32,20 @@ const Index = () => {
         const querySnapshot = await getDocs(q);
         
         const results: Transaction[] = [];
+        
+        // Process each document synchronously to avoid stream locking
         querySnapshot.forEach((doc) => {
-          // Create a plain serializable object
+          // Create a plain serializable object with explicit type conversions
           const data = doc.data();
-          results.push({
+          const transaction: Transaction = {
             id: parseInt(String(doc.id), 10) || Date.now(),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          });
+          };
+          results.push(transaction);
         });
         
         return results;
@@ -104,6 +107,7 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
+      // Return a plain serializable object
       return {
         id: parseInt(String(docRef.id), 10) || Date.now(),
         description: transactionData.description,
@@ -111,7 +115,7 @@ const Index = () => {
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      };
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
