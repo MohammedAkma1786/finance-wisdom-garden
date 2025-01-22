@@ -34,19 +34,19 @@ const Index = () => {
       );
 
       try {
+        // Get all documents at once to avoid stream locking
         const snapshot = await getDocs(q);
+        
+        // Transform the data outside of the stream operation
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          // Ensure type is strictly 'income' or 'expense'
-          const transactionType = data.type === 'income' ? 'income' : 'expense';
-          
           return {
             id: doc.id,
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type: transactionType,
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
+            description: data.description ? String(data.description) : '',
+            amount: data.amount ? Number(data.amount) : 0,
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: data.category ? String(data.category) : '',
+            date: data.date ? String(data.date) : new Date().toISOString().split('T')[0]
           } as Transaction;
         });
       } catch (error) {
@@ -65,10 +65,11 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      // Create a plain object for Firebase
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: String(newTransaction.type),
+        type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: user.uid,
