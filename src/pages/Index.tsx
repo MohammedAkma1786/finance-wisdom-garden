@@ -62,7 +62,7 @@ const Index = () => {
     },
     enabled: Boolean(user?.uid),
     staleTime: Infinity,
-    cacheTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 5, // Changed from cacheTime to gcTime
     refetchOnWindowFocus: false,
     retry: 1
   });
