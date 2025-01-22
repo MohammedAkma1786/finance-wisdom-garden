@@ -13,26 +13,29 @@ import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
-import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
-  if (!data) return {
-    id: doc.id,
-    description: '',
-    amount: 0,
-    type: 'expense',
-    category: '',
-    date: new Date().toISOString().split('T')[0]
-  };
+  // Return a default transaction if data is null
+  if (!data) {
+    return {
+      id: doc.id,
+      description: '',
+      amount: 0,
+      type: 'expense',
+      category: '',
+      date: new Date().toISOString().split('T')[0]
+    };
+  }
 
+  // Ensure all fields are properly serialized
   return {
     id: doc.id,
-    description: data.description || '',
-    amount: Number(data.amount) || 0,
+    description: String(data.description || ''),
+    amount: Number(data.amount || 0),
     type: data.type === 'income' ? 'income' : 'expense',
-    category: data.category || '',
-    date: data.date || new Date().toISOString().split('T')[0]
+    category: String(data.category || ''),
+    date: String(data.date || new Date().toISOString().split('T')[0])
   };
 };
 
@@ -49,34 +52,40 @@ const Index = () => {
       
       const transactionsRef = collection(db, 'transactions');
       const q = query(
-        transactionsRef, 
+        transactionsRef,
         where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
       
       try {
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => transformFirebaseDoc(doc));
+        // Map documents to transactions, ensuring serializable data
+        return querySnapshot.docs.map(doc => ({
+          ...transformFirebaseDoc(doc),
+          createdAt: doc.data().createdAt?.toDate?.() || new Date()
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
       }
     },
     enabled: Boolean(user?.uid),
-    staleTime: 5000, // Add staleTime to prevent multiple rapid fetches
-    retry: 1 // Limit retries to prevent stream locking
+    staleTime: 5000,
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      // Create a plain object with serializable data
       const transactionData = {
-        description: newTransaction.description,
-        amount: newTransaction.amount,
+        description: String(newTransaction.description),
+        amount: Number(newTransaction.amount),
         type: newTransaction.type,
-        category: newTransaction.category,
-        date: newTransaction.date,
+        category: String(newTransaction.category),
+        date: String(newTransaction.date),
         userId: user.uid,
         createdAt: Timestamp.now()
       };
@@ -86,14 +95,17 @@ const Index = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
-      toast({ title: "Success", description: "Transaction added successfully" });
+      toast({
+        title: "Success",
+        description: "Transaction added successfully"
+      });
     },
     onError: (error) => {
       console.error('Error adding transaction:', error);
       toast({
         title: "Error",
         description: "Failed to add transaction",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   });
@@ -121,7 +133,7 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Invalid value provided",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
