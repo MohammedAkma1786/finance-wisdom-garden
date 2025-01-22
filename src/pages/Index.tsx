@@ -8,7 +8,7 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where, DocumentData } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,9 +33,10 @@ const Index = () => {
         
         const results: Transaction[] = [];
         querySnapshot.forEach((doc) => {
+          // Create a plain serializable object
           const data = doc.data();
           results.push({
-            id: parseInt(doc.id, 10) || Date.now(),
+            id: parseInt(String(doc.id), 10) || Date.now(),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
@@ -91,10 +92,11 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
+      // Create a plain serializable object for the transaction
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type,
+        type: newTransaction.type as 'income' | 'expense',
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -102,16 +104,14 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const result: Transaction = {
-        id: parseInt(docRef.id, 10) || Date.now(),
+      return {
+        id: parseInt(String(docRef.id), 10) || Date.now(),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
       };
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
