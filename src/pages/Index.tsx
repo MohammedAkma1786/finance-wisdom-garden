@@ -32,21 +32,27 @@ const Index = () => {
         where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        const transactionType = data.type === 'income' ? 'income' : 'expense';
-        
-        return {
-          id: String(doc.id),
-          description: String(data.description || ''),
-          amount: Number(data.amount || 0),
-          type: transactionType,
-          category: String(data.category || ''),
-          date: String(data.date || new Date().toISOString().split('T')[0])
-        } as Transaction;
-      });
+
+      try {
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Ensure type is strictly 'income' or 'expense'
+          const transactionType = data.type === 'income' ? 'income' : 'expense';
+          
+          return {
+            id: doc.id,
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: transactionType,
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } as Transaction;
+        });
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
     enabled: Boolean(user?.uid),
     staleTime: Infinity,
