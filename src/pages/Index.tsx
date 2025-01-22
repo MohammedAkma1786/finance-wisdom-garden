@@ -34,14 +34,19 @@ const Index = () => {
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: String(doc.id),
-        description: String(doc.data().description || ''),
-        amount: Number(doc.data().amount || 0),
-        type: doc.data().type === 'income' ? 'income' : 'expense',
-        category: String(doc.data().category || ''),
-        date: String(doc.data().date || new Date().toISOString().split('T')[0])
-      }));
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        const transactionType = data.type === 'income' ? 'income' : 'expense';
+        
+        return {
+          id: String(doc.id),
+          description: String(data.description || ''),
+          amount: Number(data.amount || 0),
+          type: transactionType,
+          category: String(data.category || ''),
+          date: String(data.date || new Date().toISOString().split('T')[0])
+        } as Transaction;
+      });
     },
     enabled: Boolean(user?.uid),
     staleTime: Infinity,
