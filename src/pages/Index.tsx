@@ -57,10 +57,12 @@ const Index = () => {
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(transformFirebaseDoc);
+      const docs = querySnapshot.docs.map(transformFirebaseDoc);
+      return docs;
     },
     enabled: Boolean(user?.uid),
-    staleTime: 30000,
+    staleTime: Infinity,
+    cacheTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     retry: 1
   });
@@ -72,7 +74,7 @@ const Index = () => {
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type,
+        type: String(newTransaction.type),
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: user.uid,
@@ -127,17 +129,15 @@ const Index = () => {
       return;
     }
     
-    if (cardId === 'income') {
-      const difference = newValue - totalIncome;
-      if (difference !== 0) {
-        addTransactionMutation.mutate({
-          description: "Manual Income Adjustment",
-          amount: Math.abs(difference),
-          type: difference > 0 ? 'income' : 'expense',
-          category: "Adjustment",
-          date: new Date().toISOString().split('T')[0]
-        });
-      }
+    const difference = newValue - totalIncome;
+    if (cardId === 'income' && difference !== 0) {
+      addTransactionMutation.mutate({
+        description: "Manual Income Adjustment",
+        amount: Math.abs(difference),
+        type: difference > 0 ? 'income' : 'expense',
+        category: "Adjustment",
+        date: new Date().toISOString().split('T')[0]
+      });
     }
     setEditingCard(null);
   };
