@@ -33,12 +33,11 @@ const Index = () => {
         
         const results: Transaction[] = [];
         
-        // Process each document synchronously to avoid stream locking
+        // Process each document synchronously and ensure all data is serializable
         querySnapshot.forEach((doc) => {
-          // Create a plain serializable object with explicit type conversions
           const data = doc.data();
           const transaction: Transaction = {
-            id: parseInt(String(doc.id), 10) || Date.now(),
+            id: Number(doc.id) || Date.now(),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
@@ -99,7 +98,7 @@ const Index = () => {
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type as 'income' | 'expense',
+        type: newTransaction.type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(newTransaction.userId)
@@ -109,7 +108,7 @@ const Index = () => {
       
       // Return a plain serializable object
       return {
-        id: parseInt(String(docRef.id), 10) || Date.now(),
+        id: Number(docRef.id) || Date.now(),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
