@@ -8,7 +8,7 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,16 +27,6 @@ const transformFirebaseDoc = (doc: any): Transaction => {
   };
 };
 
-const validateTransaction = (transaction: Partial<Transaction>): boolean => {
-  return Boolean(
-    transaction.description &&
-    !isNaN(Number(transaction.amount)) &&
-    transaction.type &&
-    transaction.category &&
-    transaction.date
-  );
-};
-
 const Index = () => {
   const { user, logout } = useAuth();
   const [editingCard, setEditingCard] = useState<string | null>(null);
@@ -49,12 +39,45 @@ const Index = () => {
       if (!user?.uid) return [];
       
       const transactionsRef = collection(db, 'transactions');
-      const q = query(transactionsRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const q = query(
+        transactionsRef, 
+        where('userId', '==', user.uid),
+        orderBy('date', 'desc')
+      );
       
-      return querySnapshot.docs.map(transformFirebaseDoc);
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(transformFirebaseDoc);
     },
     enabled: Boolean(user?.uid)
+  });
+
+  const addTransactionMutation = useMutation({
+    mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
+      const transactionData = {
+        description: String(newTransaction.description),
+        amount: Number(newTransaction.amount),
+        type: newTransaction.type,
+        category: String(newTransaction.category),
+        date: String(newTransaction.date),
+        userId: String(newTransaction.userId),
+        createdAt: new Date().toISOString()
+      };
+      
+      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
+      return { id: docRef.id, ...transactionData } as Transaction;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
+      toast({ title: "Success", description: "Transaction added successfully" });
+    },
+    onError: (error) => {
+      console.error('Error adding transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add transaction",
+        variant: "destructive",
+      });
+    }
   });
 
   const calculateTotals = (transactions: Transaction[]) => {
@@ -74,47 +97,6 @@ const Index = () => {
 
   const { income: totalIncome, expenses: totalExpenses } = calculateTotals(transactions);
   const savings = totalIncome - totalExpenses;
-
-  const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
-      if (!validateTransaction(newTransaction)) {
-        throw new Error('Invalid transaction data');
-      }
-
-      const transactionData = {
-        description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
-        type: newTransaction.type,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(newTransaction.userId)
-      };
-      
-      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
-      
-      return {
-        id: docRef.id,
-        ...transactionData
-      } as Transaction;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['transactions', user?.uid]
-      });
-      toast({
-        title: "Success",
-        description: "Transaction added successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Error adding transaction:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add transaction",
-        variant: "destructive",
-      });
-    }
-  });
 
   const handleCardEdit = (cardId: string, newValue: number) => {
     if (!user?.uid || isNaN(newValue)) {
@@ -168,13 +150,8 @@ const Index = () => {
     }
   ];
 
-  if (!user) {
-    return <Auth />;
-  }
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  if (!user) return <Auth />;
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
