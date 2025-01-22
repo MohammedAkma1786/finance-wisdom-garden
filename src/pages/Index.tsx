@@ -29,9 +29,10 @@ const Index = () => {
       try {
         const transactionsRef = collection(db, 'transactions');
         const q = query(transactionsRef, where('userId', '==', user.uid));
-        const querySnapshot = await getDocs(q);
+        const snapshot = await getDocs(q);
         
-        return querySnapshot.docs.map(doc => ({
+        // Create a plain serializable array of transactions
+        return snapshot.docs.map(doc => ({
           id: Number(doc.id),
           description: String(doc.data().description || ''),
           amount: Number(doc.data().amount || 0),
@@ -85,6 +86,7 @@ const Index = () => {
 
   const addTransactionMutation = useMutation({
     mutationFn: async (newTransaction: Omit<Transaction, 'id'> & { userId: string }) => {
+      // Create a plain serializable object
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
