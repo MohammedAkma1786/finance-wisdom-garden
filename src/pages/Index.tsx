@@ -13,6 +13,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
+import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const transformFirebaseDoc = (doc: DocumentData): Transaction => {
   const data = doc.data();
