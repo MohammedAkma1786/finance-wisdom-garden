@@ -34,21 +34,23 @@ const Index = () => {
       );
 
       try {
-        // Get all documents at once to avoid stream locking
         const snapshot = await getDocs(q);
+        const transformedData: Transaction[] = [];
         
-        // Transform the data outside of the stream operation
-        return snapshot.docs.map(doc => {
+        snapshot.forEach((doc) => {
           const data = doc.data();
-          return {
+          const transaction: Transaction = {
             id: doc.id,
-            description: data.description ? String(data.description) : '',
-            amount: data.amount ? Number(data.amount) : 0,
+            description: data.description || '',
+            amount: typeof data.amount === 'number' ? data.amount : 0,
             type: data.type === 'income' ? 'income' : 'expense',
-            category: data.category ? String(data.category) : '',
-            date: data.date ? String(data.date) : new Date().toISOString().split('T')[0]
-          } as Transaction;
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0]
+          };
+          transformedData.push(transaction);
         });
+        
+        return transformedData;
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -65,13 +67,12 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
-      // Create a plain object for Firebase
       const transactionData = {
-        description: String(newTransaction.description),
+        description: newTransaction.description || '',
         amount: Number(newTransaction.amount),
         type: newTransaction.type,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
+        category: newTransaction.category || '',
+        date: newTransaction.date,
         userId: user.uid,
         createdAt: Timestamp.now()
       };
