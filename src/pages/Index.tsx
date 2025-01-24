@@ -35,14 +35,17 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-          id: String(doc.id),
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        } satisfies Transaction));
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: String(doc.id),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } satisfies Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -67,14 +70,16 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      return {
+      const serializedTransaction: Transaction = {
         id: String(docRef.id),
         description: String(transactionData.description),
         amount: Number(transactionData.amount),
         type: transactionData.type === 'income' ? 'income' : 'expense',
         category: String(transactionData.category),
         date: String(transactionData.date)
-      } satisfies Transaction;
+      };
+
+      return serializedTransaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
