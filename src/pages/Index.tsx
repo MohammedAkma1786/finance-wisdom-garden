@@ -37,7 +37,7 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          const type = data.type === 'income' ? 'income' : 'expense';
+          const type: "income" | "expense" = data.type === 'income' ? 'income' : 'expense';
           
           const transaction: Transaction = {
             id: doc.id,
