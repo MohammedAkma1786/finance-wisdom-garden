@@ -37,14 +37,15 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
+          const type = data.type === 'income' ? 'income' : 'expense';
           return {
             id: doc.id,
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
-            type: data.type === 'income' ? ('income' as const) : ('expense' as const),
+            type,
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          };
+          } as Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -59,7 +60,11 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        ...newTransaction,
+        description: newTransaction.description,
+        amount: newTransaction.amount,
+        type: newTransaction.type,
+        category: newTransaction.category,
+        date: newTransaction.date,
         userId: user.uid,
         createdAt: Timestamp.now()
       };
@@ -68,8 +73,12 @@ const Index = () => {
       
       return {
         id: docRef.id,
-        ...newTransaction
-      };
+        description: transactionData.description,
+        amount: transactionData.amount,
+        type: transactionData.type,
+        category: transactionData.category,
+        date: transactionData.date
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -118,7 +127,7 @@ const Index = () => {
       const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
-        type: difference > 0 ? 'income' : 'expense',
+        type: difference > 0 ? 'income' as const : 'expense' as const,
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
       };
