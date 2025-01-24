@@ -37,14 +37,15 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: String(doc.id),
-            description: String(data.description || ''),
+          const transactionData: Transaction = {
+            id: doc.id,
+            description: data.description || '',
             amount: Number(data.amount || 0),
             type: data.type === 'income' ? 'income' : 'expense',
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0]
+          };
+          return transactionData;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -59,27 +60,17 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
-        type: newTransaction.type,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(user.uid),
+        ...newTransaction,
+        userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const createdTransaction: Transaction = {
-        id: String(docRef.id),
-        description: transactionData.description,
-        amount: transactionData.amount,
-        type: transactionData.type,
-        category: transactionData.category,
-        date: transactionData.date
+      return {
+        ...newTransaction,
+        id: docRef.id
       };
-
-      return createdTransaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
