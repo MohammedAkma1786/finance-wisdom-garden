@@ -35,14 +35,18 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-          id: doc.id,
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        }));
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          const transactionType = data.type === 'income' ? 'income' as const : 'expense' as const;
+          return {
+            id: doc.id,
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type: transactionType,
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          } satisfies Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -74,7 +78,7 @@ const Index = () => {
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      };
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
