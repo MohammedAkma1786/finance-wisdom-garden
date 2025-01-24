@@ -37,15 +37,17 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          const transaction: Transaction = {
+          // Create a plain object with only the necessary fields
+          const transaction = {
             id: doc.id,
             description: String(data.description || ''),
             amount: Number(data.amount) || 0,
             type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          };
-          // Remove any potential circular references
+          } satisfies Transaction;
+          
+          // Ensure the object is serializable
           return JSON.parse(JSON.stringify(transaction));
         });
       } catch (error) {
@@ -60,6 +62,7 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      // Create a plain object with only the necessary fields
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
@@ -72,16 +75,16 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const transaction: Transaction = {
+      const transaction = {
         id: docRef.id,
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      };
+      } satisfies Transaction;
 
-      // Remove any potential circular references
+      // Ensure the object is serializable
       return JSON.parse(JSON.stringify(transaction));
     },
     onSuccess: () => {
