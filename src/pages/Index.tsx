@@ -39,16 +39,14 @@ const Index = () => {
           const data = doc.data();
           const type: "income" | "expense" = data.type === 'income' ? 'income' : 'expense';
           
-          const transaction: Transaction = {
-            id: doc.id,
+          return {
+            id: String(doc.id),
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
             type,
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
-          };
-          
-          return transaction;
+          } satisfies Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -74,16 +72,14 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const transaction: Transaction = {
-        id: docRef.id,
+      return {
+        id: String(docRef.id),
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
-      };
-      
-      return transaction;
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
