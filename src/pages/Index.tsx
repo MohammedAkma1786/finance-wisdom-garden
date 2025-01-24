@@ -36,15 +36,17 @@ const Index = () => {
       try {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
-          const docData = doc.data();
-          return {
-            id: String(doc.id),
-            description: String(docData.description || ''),
-            amount: Number(docData.amount || 0),
-            type: docData.type === 'income' ? 'income' as const : 'expense' as const,
-            category: String(docData.category || ''),
-            date: String(docData.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
+          const data = doc.data();
+          // Create a new plain object with only the required fields
+          const transaction: Transaction = {
+            id: doc.id,
+            description: data.description || '',
+            amount: Number(data.amount) || 0,
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0]
+          };
+          return transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -58,20 +60,22 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      // Create a plain object for Firestore
       const transactionData = {
-        description: String(newTransaction.description),
+        description: newTransaction.description,
         amount: Number(newTransaction.amount),
-        type: newTransaction.type === 'income' ? 'income' as const : 'expense' as const,
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(user.uid),
+        type: newTransaction.type,
+        category: newTransaction.category,
+        date: newTransaction.date,
+        userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const createdTransaction: Transaction = {
-        id: String(docRef.id),
+      // Return a plain object
+      const transaction: Transaction = {
+        id: docRef.id,
         description: transactionData.description,
         amount: transactionData.amount,
         type: transactionData.type,
@@ -79,7 +83,7 @@ const Index = () => {
         date: transactionData.date
       };
 
-      return createdTransaction;
+      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -127,10 +131,11 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
+      // Create a plain adjustment transaction object
       const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
-        type: difference > 0 ? 'income' as const : 'expense' as const,
+        type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
       };
