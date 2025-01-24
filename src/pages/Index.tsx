@@ -35,18 +35,14 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          const transaction: Transaction = {
-            id: doc.id,
-            description: data.description || '',
-            amount: Number(data.amount) || 0,
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: data.category || '',
-            date: data.date || new Date().toISOString().split('T')[0]
-          };
-          return transaction;
-        });
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          description: doc.data().description || '',
+          amount: Number(doc.data().amount) || 0,
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: doc.data().category || '',
+          date: doc.data().date || new Date().toISOString().split('T')[0]
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -60,27 +56,17 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        description: newTransaction.description,
-        amount: newTransaction.amount,
-        type: newTransaction.type,
-        category: newTransaction.category,
-        date: newTransaction.date,
+        ...newTransaction,
         userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const transaction: Transaction = {
+      return {
         id: docRef.id,
-        description: transactionData.description,
-        amount: transactionData.amount,
-        type: transactionData.type,
-        category: transactionData.category,
-        date: transactionData.date
+        ...newTransaction
       };
-
-      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -101,11 +87,10 @@ const Index = () => {
   const calculateTotals = (transactions: Transaction[]) => {
     return transactions.reduce(
       (acc, t) => {
-        const amount = Number(t.amount) || 0;
         if (t.type === "income") {
-          acc.income += amount;
+          acc.income += Number(t.amount) || 0;
         } else {
-          acc.expenses += amount;
+          acc.expenses += Number(t.amount) || 0;
         }
         return acc;
       },
@@ -123,17 +108,17 @@ const Index = () => {
       return;
     }
     
+    const { income: totalIncome } = calculateTotals(transactions);
     const difference = newValue - totalIncome;
+    
     if (cardId === 'income' && difference !== 0) {
-      const adjustmentTransaction: Omit<Transaction, 'id'> = {
+      addTransactionMutation.mutate({
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
         type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
-      };
-      
-      addTransactionMutation.mutate(adjustmentTransaction);
+      });
     }
     setEditingCard(null);
   };
