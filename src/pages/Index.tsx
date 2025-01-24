@@ -35,32 +35,20 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        const transformedData: Transaction[] = [];
-        
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          const transaction: Transaction = {
-            id: doc.id,
-            description: data.description || '',
-            amount: typeof data.amount === 'number' ? data.amount : 0,
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: data.category || '',
-            date: data.date || new Date().toISOString().split('T')[0]
-          };
-          transformedData.push(transaction);
-        });
-        
-        return transformedData;
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
       }
     },
-    enabled: Boolean(user?.uid),
-    staleTime: Infinity,
-    gcTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-    retry: 1
+    enabled: Boolean(user?.uid)
   });
 
   const addTransactionMutation = useMutation({
@@ -68,12 +56,12 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        description: newTransaction.description || '',
-        amount: Number(newTransaction.amount),
+        description: String(newTransaction.description || ''),
+        amount: Number(newTransaction.amount || 0),
         type: newTransaction.type,
-        category: newTransaction.category || '',
-        date: newTransaction.date,
-        userId: user.uid,
+        category: String(newTransaction.category || ''),
+        date: String(newTransaction.date || new Date().toISOString().split('T')[0]),
+        userId: String(user.uid),
         createdAt: Timestamp.now()
       };
       
