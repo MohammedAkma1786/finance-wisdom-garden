@@ -35,17 +35,14 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            description: String(data.description || ''),
-            amount: Number(data.amount) || 0,
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } as Transaction;
-        });
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -59,7 +56,11 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        ...newTransaction,
+        description: String(newTransaction.description),
+        amount: Number(newTransaction.amount),
+        type: newTransaction.type,
+        category: String(newTransaction.category),
+        date: String(newTransaction.date),
         userId: user.uid,
         createdAt: Timestamp.now()
       };
@@ -68,8 +69,12 @@ const Index = () => {
       
       return {
         id: docRef.id,
-        ...newTransaction
-      } as Transaction;
+        description: transactionData.description,
+        amount: transactionData.amount,
+        type: transactionData.type,
+        category: transactionData.category,
+        date: transactionData.date
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
