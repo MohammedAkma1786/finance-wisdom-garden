@@ -37,14 +37,15 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: String(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
+          const transaction: Transaction = {
+            id: doc.id,
+            description: data.description || '',
+            amount: Number(data.amount) || 0,
             type: data.type === 'income' ? 'income' : 'expense',
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } satisfies Transaction;
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0]
+          };
+          return transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -59,27 +60,27 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        description: String(newTransaction.description),
-        amount: Number(newTransaction.amount),
-        type: String(newTransaction.type),
-        category: String(newTransaction.category),
-        date: String(newTransaction.date),
-        userId: String(user.uid),
+        description: newTransaction.description,
+        amount: newTransaction.amount,
+        type: newTransaction.type,
+        category: newTransaction.category,
+        date: newTransaction.date,
+        userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      const serializedTransaction: Transaction = {
-        id: String(docRef.id),
-        description: String(transactionData.description),
-        amount: Number(transactionData.amount),
-        type: transactionData.type === 'income' ? 'income' : 'expense',
-        category: String(transactionData.category),
-        date: String(transactionData.date)
+      const transaction: Transaction = {
+        id: docRef.id,
+        description: transactionData.description,
+        amount: transactionData.amount,
+        type: transactionData.type,
+        category: transactionData.category,
+        date: transactionData.date
       };
 
-      return serializedTransaction;
+      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -112,9 +113,6 @@ const Index = () => {
     );
   };
 
-  const { income: totalIncome, expenses: totalExpenses } = calculateTotals(transactions);
-  const savings = totalIncome - totalExpenses;
-
   const handleCardEdit = (cardId: string, newValue: number) => {
     if (!user?.uid || isNaN(newValue)) {
       toast({
@@ -139,6 +137,9 @@ const Index = () => {
     }
     setEditingCard(null);
   };
+
+  const { income: totalIncome, expenses: totalExpenses } = calculateTotals(transactions);
+  const savings = totalIncome - totalExpenses;
 
   const dashboardCards: DashboardCardData[] = [
     {
