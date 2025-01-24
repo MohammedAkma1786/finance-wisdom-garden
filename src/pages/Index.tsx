@@ -36,17 +36,16 @@ const Index = () => {
       try {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
-          const data = doc.data();
-          const type = data.type === 'income' ? 'income' : 'expense';
+          const docData = doc.data();
           return {
             id: String(doc.id),
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type,
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          };
-        }) as Transaction[];
+            description: String(docData.description || ''),
+            amount: Number(docData.amount || 0),
+            type: docData.type === 'income' ? 'income' as const : 'expense' as const,
+            category: String(docData.category || ''),
+            date: String(docData.date || new Date().toISOString().split('T')[0])
+          } satisfies Transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -59,11 +58,10 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
-      const type = newTransaction.type === 'income' ? 'income' : 'expense';
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type,
+        type: newTransaction.type === 'income' ? 'income' as const : 'expense' as const,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
         userId: String(user.uid),
@@ -72,14 +70,16 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      return {
+      const createdTransaction: Transaction = {
         id: String(docRef.id),
         description: transactionData.description,
         amount: transactionData.amount,
-        type: type as "income" | "expense",
+        type: transactionData.type,
         category: transactionData.category,
         date: transactionData.date
       };
+
+      return createdTransaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -127,11 +127,10 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
-      const type = difference > 0 ? 'income' as const : 'expense' as const;
       const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
-        type,
+        type: difference > 0 ? 'income' as const : 'expense' as const,
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
       };
