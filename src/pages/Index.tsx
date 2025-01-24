@@ -35,14 +35,21 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-          id: doc.id,
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        }));
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          const type = data.type === 'income' ? 'income' : 'expense';
+          
+          const transaction: Transaction = {
+            id: doc.id,
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type,
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          };
+          
+          return transaction;
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -67,7 +74,7 @@ const Index = () => {
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      return {
+      const transaction: Transaction = {
         id: docRef.id,
         description: transactionData.description,
         amount: transactionData.amount,
@@ -75,6 +82,8 @@ const Index = () => {
         category: transactionData.category,
         date: transactionData.date
       };
+      
+      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -122,13 +131,13 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
-      const adjustmentTransaction = {
+      const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
         type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
-      } as const;
+      };
       
       addTransactionMutation.mutate(adjustmentTransaction);
     }
