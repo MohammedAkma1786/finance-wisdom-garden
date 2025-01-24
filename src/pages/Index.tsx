@@ -35,19 +35,14 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          // Create a new plain object with only the required fields
-          const transaction: Transaction = {
-            id: doc.id,
-            description: data.description || '',
-            amount: Number(data.amount) || 0,
-            type: data.type === 'income' ? 'income' : 'expense',
-            category: data.category || '',
-            date: data.date || new Date().toISOString().split('T')[0]
-          };
-          return transaction;
-        });
+        return snapshot.docs.map(doc => ({
+          id: String(doc.id),
+          description: String(doc.data().description || ''),
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: String(doc.data().category || ''),
+          date: String(doc.data().date || new Date().toISOString().split('T')[0])
+        }));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -60,30 +55,26 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
-      // Create a plain object for Firestore
       const transactionData = {
-        description: newTransaction.description,
+        description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type,
-        category: newTransaction.category,
-        date: newTransaction.date,
-        userId: user.uid,
+        type: String(newTransaction.type),
+        category: String(newTransaction.category),
+        date: String(newTransaction.date),
+        userId: String(user.uid),
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
-      // Return a plain object
-      const transaction: Transaction = {
-        id: docRef.id,
+      return {
+        id: String(docRef.id),
         description: transactionData.description,
         amount: transactionData.amount,
-        type: transactionData.type,
+        type: transactionData.type as "income" | "expense",
         category: transactionData.category,
         date: transactionData.date
       };
-
-      return transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -131,13 +122,12 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
-      // Create a plain adjustment transaction object
-      const adjustmentTransaction: Omit<Transaction, 'id'> = {
-        description: "Manual Income Adjustment",
-        amount: Math.abs(difference),
-        type: difference > 0 ? 'income' : 'expense',
-        category: "Adjustment",
-        date: new Date().toISOString().split('T')[0]
+      const adjustmentTransaction = {
+        description: String("Manual Income Adjustment"),
+        amount: Number(Math.abs(difference)),
+        type: difference > 0 ? ("income" as const) : ("expense" as const),
+        category: String("Adjustment"),
+        date: String(new Date().toISOString().split('T')[0])
       };
       
       addTransactionMutation.mutate(adjustmentTransaction);
