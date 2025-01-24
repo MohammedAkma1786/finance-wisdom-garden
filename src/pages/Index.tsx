@@ -35,14 +35,18 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-          id: doc.id,
-          description: String(doc.data().description || ''),
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: String(doc.data().category || ''),
-          date: String(doc.data().date || new Date().toISOString().split('T')[0])
-        })) as Transaction[];
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          const type = data.type === 'income' ? 'income' : 'expense';
+          return {
+            id: String(doc.id),
+            description: String(data.description || ''),
+            amount: Number(data.amount || 0),
+            type,
+            category: String(data.category || ''),
+            date: String(data.date || new Date().toISOString().split('T')[0])
+          };
+        }) as Transaction[];
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -55,23 +59,24 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      const type = newTransaction.type === 'income' ? 'income' : 'expense';
       const transactionData = {
         description: String(newTransaction.description),
         amount: Number(newTransaction.amount),
-        type: newTransaction.type,
+        type,
         category: String(newTransaction.category),
         date: String(newTransaction.date),
-        userId: user.uid,
+        userId: String(user.uid),
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: docRef.id,
+        id: String(docRef.id),
         description: transactionData.description,
         amount: transactionData.amount,
-        type: transactionData.type as "income" | "expense",
+        type: type as "income" | "expense",
         category: transactionData.category,
         date: transactionData.date
       };
@@ -122,10 +127,11 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
+      const type = difference > 0 ? 'income' as const : 'expense' as const;
       const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
-        type: difference > 0 ? 'income' : 'expense',
+        type,
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
       };
