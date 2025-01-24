@@ -37,12 +37,12 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
-          const transactionType = data.type === 'income' ? 'income' : 'expense';
+          // Ensure we have valid data with proper types
           return {
             id: doc.id,
             description: String(data.description || ''),
             amount: Number(data.amount || 0),
-            type: transactionType,
+            type: data.type === 'income' ? 'income' : 'expense',
             category: String(data.category || ''),
             date: String(data.date || new Date().toISOString().split('T')[0])
           } as Transaction;
@@ -59,18 +59,27 @@ const Index = () => {
     mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
       if (!user?.uid) throw new Error('User not authenticated');
 
+      // Create a plain object with only the necessary data
       const transactionData = {
         description: String(newTransaction.description || ''),
         amount: Number(newTransaction.amount || 0),
         type: newTransaction.type,
         category: String(newTransaction.category || ''),
         date: String(newTransaction.date || new Date().toISOString().split('T')[0]),
-        userId: String(user.uid),
+        userId: user.uid,
         createdAt: Timestamp.now()
       };
       
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
-      return { id: docRef.id, ...newTransaction } as Transaction;
+      // Return a new object with the ID and transaction data
+      return {
+        id: docRef.id,
+        description: transactionData.description,
+        amount: transactionData.amount,
+        type: transactionData.type,
+        category: transactionData.category,
+        date: transactionData.date
+      } as Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -118,13 +127,15 @@ const Index = () => {
     
     const difference = newValue - totalIncome;
     if (cardId === 'income' && difference !== 0) {
-      addTransactionMutation.mutate({
+      const adjustmentTransaction = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
         type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
-      });
+      } as const;
+      
+      addTransactionMutation.mutate(adjustmentTransaction);
     }
     setEditingCard(null);
   };
