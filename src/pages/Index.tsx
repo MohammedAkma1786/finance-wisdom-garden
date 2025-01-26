@@ -13,7 +13,6 @@ import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Transaction } from "@/lib/types";
-import type { DashboardCardData } from "@/lib/dashboard-types";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -35,18 +34,14 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          const type = data.type === 'income' ? 'income' : 'expense';
-          return {
-            id: doc.id,
-            description: String(data.description || ''),
-            amount: Number(data.amount || 0),
-            type,
-            category: String(data.category || ''),
-            date: String(data.date || new Date().toISOString().split('T')[0])
-          } as Transaction;
-        });
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          description: doc.data().description || '',
+          amount: Number(doc.data().amount || 0),
+          type: doc.data().type === 'income' ? 'income' : 'expense',
+          category: doc.data().category || '',
+          date: doc.data().date || new Date().toISOString().split('T')[0]
+        } as Transaction));
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -96,20 +91,6 @@ const Index = () => {
     }
   });
 
-  const calculateTotals = (transactions: Transaction[]) => {
-    return transactions.reduce(
-      (acc, t) => {
-        if (t.type === "income") {
-          acc.income += Number(t.amount) || 0;
-        } else {
-          acc.expenses += Number(t.amount) || 0;
-        }
-        return acc;
-      },
-      { income: 0, expenses: 0 }
-    );
-  };
-
   const handleCardEdit = (cardId: string, newValue: number) => {
     if (!user?.uid || isNaN(newValue)) {
       toast({
@@ -124,23 +105,37 @@ const Index = () => {
     const difference = newValue - totalIncome;
     
     if (cardId === 'income' && difference !== 0) {
-      const adjustmentTransaction: Omit<Transaction, 'id'> = {
+      const adjustmentTransaction = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
-        type: difference > 0 ? 'income' as const : 'expense' as const,
+        type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
-      };
+      } as const;
       
       addTransactionMutation.mutate(adjustmentTransaction);
     }
     setEditingCard(null);
   };
 
+  const calculateTotals = (transactions: Transaction[]) => {
+    return transactions.reduce(
+      (acc, t) => {
+        if (t.type === "income") {
+          acc.income += t.amount;
+        } else {
+          acc.expenses += t.amount;
+        }
+        return acc;
+      },
+      { income: 0, expenses: 0 }
+    );
+  };
+
   const { income: totalIncome, expenses: totalExpenses } = calculateTotals(transactions);
   const savings = totalIncome - totalExpenses;
 
-  const dashboardCards: DashboardCardData[] = [
+  const dashboardCards = [
     {
       id: "income",
       title: "Total Income",
