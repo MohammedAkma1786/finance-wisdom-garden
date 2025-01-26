@@ -36,14 +36,15 @@ const Index = () => {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => {
           const data = doc.data();
+          const transactionType = data.type === 'income' ? 'income' as const : 'expense' as const;
           return {
             id: doc.id,
             description: data.description || '',
             amount: Number(data.amount) || 0,
-            type: data.type === 'income' ? 'income' : 'expense',
+            type: transactionType,
             category: data.category || '',
             date: data.date || new Date().toISOString().split('T')[0]
-          };
+          } satisfies Transaction;
         });
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -68,7 +69,7 @@ const Index = () => {
       return {
         ...newTransaction,
         id: docRef.id
-      };
+      } satisfies Transaction;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -100,7 +101,7 @@ const Index = () => {
     const difference = newValue - totalIncome;
     
     if (cardId === 'income' && difference !== 0) {
-      const adjustmentTransaction = {
+      const adjustmentTransaction: Omit<Transaction, 'id'> = {
         description: "Manual Income Adjustment",
         amount: Math.abs(difference),
         type: difference > 0 ? 'income' : 'expense',
