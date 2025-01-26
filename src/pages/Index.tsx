@@ -8,130 +8,27 @@ import { EditValueDialog } from "@/components/EditValueDialog";
 import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { collection, query, getDocs, addDoc, where, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Transaction } from "@/lib/types";
+
+interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+}
 
 const Index = () => {
   const { user, logout } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [editingCard, setEditingCard] = useState<string | null>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions', user?.uid],
-    queryFn: async () => {
-      if (!user?.uid) return [];
-      
-      const transactionsRef = collection(db, 'transactions');
-      const q = query(
-        transactionsRef,
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-
-      try {
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          const transactionType = data.type === 'income' ? 'income' as const : 'expense' as const;
-          return {
-            id: doc.id,
-            description: data.description || '',
-            amount: Number(data.amount) || 0,
-            type: transactionType,
-            category: data.category || '',
-            date: data.date || new Date().toISOString().split('T')[0]
-          } satisfies Transaction;
-        });
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-        return [];
-      }
-    },
-    enabled: Boolean(user?.uid)
-  });
-
-  const addTransactionMutation = useMutation({
-    mutationFn: async (newTransaction: Omit<Transaction, 'id'>) => {
-      if (!user?.uid) throw new Error('User not authenticated');
-
-      const transactionData = {
-        ...newTransaction,
-        userId: user.uid,
-        createdAt: Timestamp.now()
-      };
-      
-      const docRef = await addDoc(collection(db, 'transactions'), transactionData);
-      
-      return {
-        ...newTransaction,
-        id: docRef.id
-      } satisfies Transaction;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
-      toast({
-        title: "Success",
-        description: "Transaction added successfully"
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add transaction",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleCardEdit = (cardId: string, newValue: number) => {
-    if (!user?.uid || isNaN(newValue)) {
-      toast({
-        title: "Error",
-        description: "Invalid value provided",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const { income: totalIncome } = calculateTotals(transactions);
-    const difference = newValue - totalIncome;
-    
-    if (cardId === 'income' && difference !== 0) {
-      const adjustmentTransaction: Omit<Transaction, 'id'> = {
-        description: "Manual Income Adjustment",
-        amount: Math.abs(difference),
-        type: difference > 0 ? 'income' : 'expense',
-        category: "Adjustment",
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      addTransactionMutation.mutate(adjustmentTransaction);
-    }
-    setEditingCard(null);
-  };
-
-  const calculateTotals = (transactions: Transaction[]) => {
-    return transactions.reduce(
-      (acc, t) => {
-        if (t.type === "income") {
-          acc.income += t.amount;
-        } else {
-          acc.expenses += t.amount;
-        }
-        return acc;
-      },
-      { income: 0, expenses: 0 }
-    );
-  };
-
-  const { income: totalIncome, expenses: totalExpenses } = calculateTotals(transactions);
+  // Calculate totals
+  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
+  const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
   const savings = totalIncome - totalExpenses;
 
-  const dashboardCards = [
+  const [dashboardCards] = useState([
     {
       id: "income",
       title: "Total Income",
@@ -153,15 +50,52 @@ const Index = () => {
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
       className: "border-l-primary"
     }
-  ];
+  ]);
 
-  if (!user) return <Auth />;
-  if (isLoading) return <div>Loading...</div>;
+  const handleCardEdit = (cardId: string) => {
+    setEditingCard(cardId);
+  };
+
+  const handleSaveEdit = (newValue: number) => {
+    if (editingCard === 'income') {
+      const difference = newValue - totalIncome;
+      if (difference !== 0) {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
+          description: "Manual Income Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Adjustment",
+          date: new Date().toISOString().split('T')[0],
+        };
+        setTransactions([newTransaction, ...transactions]);
+      }
+    } else if (editingCard === 'savings') {
+      const difference = newValue - savings;
+      if (difference !== 0) {
+        const newTransaction: Transaction = {
+          id: transactions.length + 1,
+          description: "Manual Savings Adjustment",
+          amount: Math.abs(difference),
+          type: difference > 0 ? "income" : "expense",
+          category: "Savings Adjustment",
+          date: new Date().toISOString().split('T')[0],
+        };
+        setTransactions([newTransaction, ...transactions]);
+      }
+    }
+    
+    setEditingCard(null);
+  };
+
+  if (!user) {
+    return <Auth />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <DashboardHeader userName={user.displayName || ''} onLogout={logout} />
+        <DashboardHeader userName={user.name} onLogout={logout} />
 
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Dashboard</h2>
@@ -176,6 +110,9 @@ const Index = () => {
         </div>
 
         <DashboardStats
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          savings={savings}
           onCardEdit={handleCardEdit}
           dashboardCards={dashboardCards}
         />
@@ -189,9 +126,7 @@ const Index = () => {
 
         <TransactionManager 
           transactions={transactions}
-          setTransactions={(newTransactions) => {
-            queryClient.setQueryData(['transactions', user.uid], newTransactions);
-          }}
+          setTransactions={setTransactions}
         />
       </div>
 
@@ -199,7 +134,7 @@ const Index = () => {
         <EditValueDialog
           isOpen={true}
           onClose={() => setEditingCard(null)}
-          onSave={(value) => handleCardEdit(editingCard, value)}
+          onSave={handleSaveEdit}
           initialValue={editingCard === 'income' ? totalIncome : savings}
           title={editingCard === 'income' ? 'Total Income' : 'Savings'}
         />
@@ -207,5 +142,32 @@ const Index = () => {
     </div>
   );
 };
+
+const mockTransactions = [
+  {
+    id: 1,
+    description: "Salary",
+    amount: 5000,
+    type: "income" as const,
+    category: "Income",
+    date: "2024-03-15",
+  },
+  {
+    id: 2,
+    description: "Rent",
+    amount: 1500,
+    type: "expense" as const,
+    category: "Housing",
+    date: "2024-03-14",
+  },
+  {
+    id: 3,
+    description: "Groceries",
+    amount: 200,
+    type: "expense" as const,
+    category: "Food",
+    date: "2024-03-13",
+  },
+];
 
 export default Index;

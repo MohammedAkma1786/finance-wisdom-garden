@@ -2,21 +2,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Pencil, Trash2 } from "lucide-react";
-import type { Transaction } from "@/lib/types";
+
+interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+}
 
 interface TransactionListProps {
   transactions: Transaction[];
   onEdit: (transaction: Transaction) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
   onReorder: (startIndex: number, endIndex: number) => void;
 }
 
-export function TransactionList({ 
-  transactions, 
-  onEdit, 
-  onDelete, 
-  onReorder 
-}: TransactionListProps) {
+export function TransactionList({ transactions, onEdit, onDelete, onReorder }: TransactionListProps) {
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/plain', index.toString());
   };
@@ -48,24 +51,16 @@ export function TransactionList({
             <div className="flex items-center gap-4">
               <GripVertical className="h-5 w-5 text-muted-foreground" />
               <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {transaction.description}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {transaction.category}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {transaction.date}
-                </p>
+                <p className="text-sm font-medium leading-none">{transaction.description}</p>
+                <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                <p className="text-xs text-muted-foreground">{transaction.date}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div
                 className={cn(
                   "text-sm font-medium",
-                  transaction.type === "income" 
-                    ? "text-secondary" 
-                    : "text-destructive"
+                  transaction.type === "income" ? "text-secondary" : "text-destructive"
                 )}
               >
                 {transaction.type === "income" ? "+" : "-"}

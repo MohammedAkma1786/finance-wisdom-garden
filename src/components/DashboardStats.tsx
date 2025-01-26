@@ -1,6 +1,20 @@
 import { DashboardCard } from "@/components/DashboardCard";
+import { ArrowDownIcon, ArrowUpIcon, PiggyBankIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { DashboardStatsProps } from "@/lib/dashboard-types";
+
+interface DashboardStatsProps {
+  totalIncome: number;
+  totalExpenses: number;
+  savings: number;
+  onCardEdit: (cardId: string, value: number) => void;
+  dashboardCards: Array<{
+    id: string;
+    title: string;
+    value: number;
+    icon: React.ReactNode;
+    className: string;
+  }>;
+}
 
 export function DashboardStats({
   onCardEdit,

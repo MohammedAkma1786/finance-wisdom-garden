@@ -3,25 +3,34 @@ import { Card } from "@/components/ui/card";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionList } from "@/components/TransactionList";
 import { useToast } from "@/hooks/use-toast";
-import type { Transaction } from "@/lib/types";
+
+interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: string;
+}
 
 interface TransactionManagerProps {
   transactions: Transaction[];
   setTransactions: (transactions: Transaction[]) => void;
 }
 
-export function TransactionManager({ 
-  transactions, 
-  setTransactions 
-}: TransactionManagerProps) {
+export function TransactionManager({ transactions, setTransactions }: TransactionManagerProps) {
   const { toast } = useToast();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id'>) => {
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
     if (editingTransaction) {
       const updatedTransactions = transactions.map((t) =>
         t.id === editingTransaction.id
-          ? { ...transaction, id: editingTransaction.id }
+          ? {
+              ...transaction,
+              id: editingTransaction.id,
+              date: editingTransaction.date
+            }
           : t
       );
       setTransactions(updatedTransactions);
@@ -33,7 +42,8 @@ export function TransactionManager({
     } else {
       const newTransaction: Transaction = {
         ...transaction,
-        id: Date.now().toString(), // Ensure string ID for Firebase compatibility
+        id: transactions.length + 1,
+        date: new Date().toISOString().split('T')[0],
       };
       setTransactions([newTransaction, ...transactions]);
       toast({
@@ -47,7 +57,7 @@ export function TransactionManager({
     setEditingTransaction(transaction);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     setTransactions(transactions.filter((t) => t.id !== id));
     toast({
       title: "Success",
@@ -68,6 +78,7 @@ export function TransactionManager({
         onSubmit={handleTransactionSubmit}
         editingTransaction={editingTransaction}
       />
+      
       <Card className="p-6">
         <h2 className="mb-4 text-lg font-semibold">Transactions</h2>
         <TransactionList 

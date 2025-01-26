@@ -1,7 +1,6 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,17 +12,41 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
+// Validate that all required Firebase config values are present
+const validateFirebaseConfig = (config: Record<string, string | undefined>): boolean => {
+  const requiredFields = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
+  ];
 
-// Initialize Analytics only if it's supported (not in SSR/development environment)
-const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+  return requiredFields.every(field => {
+    const value = config[field];
+    if (!value) {
+      console.error(`Missing Firebase config: ${field}`);
+      return false;
+    }
+    return true;
+  });
+};
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && 
-  firebaseConfig.authDomain && 
-  firebaseConfig.projectId
-);
+let app: FirebaseApp | null = null;
+let analytics = null;
 
-export default app;
+if (validateFirebaseConfig(firebaseConfig)) {
+  try {
+    app = initializeApp(firebaseConfig);
+    analytics = getAnalytics(app);
+    console.log("Firebase initialized successfully");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+  }
+} else {
+  console.error("Firebase configuration is incomplete. Please check your .env file.");
+}
+
+export const auth = app ? getAuth(app) : null;
+export const isFirebaseConfigured = Boolean(app);
