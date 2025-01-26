@@ -22,15 +22,11 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
   const { toast } = useToast();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+  const handleTransactionSubmit = (transaction: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
       const updatedTransactions = transactions.map((t) =>
         t.id === editingTransaction.id
-          ? {
-              ...transaction,
-              id: editingTransaction.id,
-              date: editingTransaction.date
-            }
+          ? { ...transaction, id: editingTransaction.id }
           : t
       );
       setTransactions(updatedTransactions);
@@ -43,7 +39,6 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
       const newTransaction: Transaction = {
         ...transaction,
         id: transactions.length + 1,
-        date: new Date().toISOString().split('T')[0],
       };
       setTransactions([newTransaction, ...transactions]);
       toast({
@@ -73,13 +68,13 @@ export function TransactionManager({ transactions, setTransactions }: Transactio
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <TransactionForm
         onSubmit={handleTransactionSubmit}
         editingTransaction={editingTransaction}
       />
       
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold">Transactions</h2>
         <TransactionList 
           transactions={transactions}

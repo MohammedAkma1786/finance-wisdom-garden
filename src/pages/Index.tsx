@@ -93,18 +93,18 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
         <DashboardHeader userName={user.name} onLogout={logout} />
 
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Financial Dashboard</h2>
-          <div className="space-x-4">
-            <Link to="/planner">
-              <Button variant="outline">Expense Planner</Button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold">Financial Dashboard</h2>
+          <div className="flex flex-wrap gap-2 sm:gap-4 w-full sm:w-auto">
+            <Link to="/planner" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">Expense Planner</Button>
             </Link>
-            <Link to="/subscriptions">
-              <Button variant="outline">Subscription Tracker</Button>
+            <Link to="/subscriptions" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">Subscription Tracker</Button>
             </Link>
           </div>
         </div>
@@ -117,10 +117,10 @@ const Index = () => {
           dashboardCards={dashboardCards}
         />
 
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold">Recent Transactions</h3>
-          <Link to="/transactions">
-            <Button variant="outline">View All Transactions</Button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h3 className="text-lg sm:text-xl font-semibold">Recent Transactions</h3>
+          <Link to="/transactions" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">View All Transactions</Button>
           </Link>
         </div>
 
