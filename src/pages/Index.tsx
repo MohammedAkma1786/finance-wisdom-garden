@@ -34,14 +34,17 @@ const Index = () => {
 
       try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-          id: doc.id,
-          description: doc.data().description || '',
-          amount: Number(doc.data().amount || 0),
-          type: doc.data().type === 'income' ? 'income' : 'expense',
-          category: doc.data().category || '',
-          date: doc.data().date || new Date().toISOString().split('T')[0]
-        } as Transaction));
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            description: data.description || '',
+            amount: Number(data.amount) || 0,
+            type: data.type === 'income' ? 'income' : 'expense',
+            category: data.category || '',
+            date: data.date || new Date().toISOString().split('T')[0]
+          };
+        });
       } catch (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -55,11 +58,7 @@ const Index = () => {
       if (!user?.uid) throw new Error('User not authenticated');
 
       const transactionData = {
-        description: newTransaction.description,
-        amount: newTransaction.amount,
-        type: newTransaction.type,
-        category: newTransaction.category,
-        date: newTransaction.date,
+        ...newTransaction,
         userId: user.uid,
         createdAt: Timestamp.now()
       };
@@ -67,13 +66,9 @@ const Index = () => {
       const docRef = await addDoc(collection(db, 'transactions'), transactionData);
       
       return {
-        id: docRef.id,
-        description: transactionData.description,
-        amount: transactionData.amount,
-        type: transactionData.type,
-        category: transactionData.category,
-        date: transactionData.date
-      } as Transaction;
+        ...newTransaction,
+        id: docRef.id
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.uid] });
@@ -111,7 +106,7 @@ const Index = () => {
         type: difference > 0 ? 'income' : 'expense',
         category: "Adjustment",
         date: new Date().toISOString().split('T')[0]
-      } as const;
+      };
       
       addTransactionMutation.mutate(adjustmentTransaction);
     }
