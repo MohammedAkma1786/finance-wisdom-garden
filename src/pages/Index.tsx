@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
@@ -22,11 +23,15 @@ const Index = () => {
   const { user, logout } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [editingCard, setEditingCard] = useState<string | null>(null);
+  const [manualIncome, setManualIncome] = useState<number | null>(null);
+  const [manualSavings, setManualSavings] = useState<number | null>(null);
 
   // Calculate totals
-  const totalIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
+  const calculatedIncome = transactions.reduce((sum, t) => t.type === "income" ? sum + t.amount : sum, 0);
   const totalExpenses = transactions.reduce((sum, t) => t.type === "expense" ? sum + t.amount : sum, 0);
-  const savings = totalIncome - totalExpenses;
+  
+  const totalIncome = manualIncome !== null ? manualIncome : calculatedIncome;
+  const savings = manualSavings !== null ? manualSavings : (totalIncome - totalExpenses);
 
   const [dashboardCards] = useState([
     {
@@ -58,6 +63,7 @@ const Index = () => {
 
   const handleSaveEdit = (newValue: number) => {
     if (editingCard === 'income') {
+      setManualIncome(newValue);
       const difference = newValue - totalIncome;
       if (difference !== 0) {
         const newTransaction: Transaction = {
@@ -71,6 +77,7 @@ const Index = () => {
         setTransactions([newTransaction, ...transactions]);
       }
     } else if (editingCard === 'savings') {
+      setManualSavings(newValue);
       const difference = newValue - savings;
       if (difference !== 0) {
         const newTransaction: Transaction = {
