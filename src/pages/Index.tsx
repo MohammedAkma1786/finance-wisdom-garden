@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Auth } from "@/components/Auth";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -33,7 +33,8 @@ const Index = () => {
   const totalIncome = manualIncome !== null ? manualIncome : calculatedIncome;
   const savings = manualSavings !== null ? manualSavings : (totalIncome - totalExpenses);
 
-  const [dashboardCards] = useState([
+  // Use useMemo to create dashboardCards that updates when values change
+  const dashboardCards = useMemo(() => [
     {
       id: "income",
       title: "Total Income",
@@ -55,7 +56,7 @@ const Index = () => {
       icon: <PiggyBankIcon className="h-4 w-4 text-primary" />,
       className: "border-l-primary"
     }
-  ]);
+  ], [totalIncome, totalExpenses, savings]);
 
   const handleCardEdit = (cardId: string) => {
     setEditingCard(cardId);
